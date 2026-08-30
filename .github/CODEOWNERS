@@ -1,0 +1,3 @@
+# CI enforcement changes should receive an explicit owner review.
+/.github/workflows/ @Chinmay-KB
+/tool/verify_version.py @Chinmay-KB

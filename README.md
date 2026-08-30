@@ -58,3 +58,5 @@ dependency_overrides:
 See [architecture](docs/ARCHITECTURE.md),
 [Android capabilities](docs/ANDROID_CAPABILITIES.md), and
 [verification evidence](docs/VERIFICATION.md) before building the final UI.
+CI behavior and the required branch-protection check are documented in
+[GitHub Actions](docs/CI.md).

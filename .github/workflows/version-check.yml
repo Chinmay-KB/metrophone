@@ -1,0 +1,66 @@
+name: PR version gate
+
+on:
+  pull_request_target:
+    branches:
+      - main
+      - master
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: version-check-${{ github.event.pull_request.number || github.event.merge_group.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  version-monotonicity:
+    name: Version monotonicity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out trusted target revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          fetch-depth: 0
+
+      - name: Read proposed PR revision
+        if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: proposed
+          persist-credentials: false
+
+      - name: Read proposed merge group
+        if: github.event_name == 'merge_group'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.merge_group.head_sha }}
+          path: proposed
+          persist-credentials: false
+
+      - name: Resolve target revision
+        id: base
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+        shell: bash
+        run: |
+          base_sha="${PR_BASE_SHA:-${MERGE_GROUP_BASE_SHA:-}}"
+          if [[ -z "$base_sha" ]]; then
+            echo "Unable to determine the target branch revision." >&2
+            exit 1
+          fi
+          echo "sha=$base_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Require a greater app version
+        run: >-
+          python3 tool/verify_version.py
+          --head-file proposed/pubspec.yaml
+          --base-ref "${{ steps.base.outputs.sha }}"
