@@ -9,8 +9,8 @@ revision and requires both values to increase:
 - `MAJOR.MINOR.PATCH` must be greater;
 - Android `BUILD` (the value after `+`) must be greater.
 
-For example, if the target branch contains `1.0.0+1`, a PR could use `1.0.1+2`.
-`1.0.1+1` and `1.0.0+2` both fail because only one component advanced.
+For example, if the target branch contains `0.0.1+1`, a PR could use `0.0.2+2`.
+`0.0.2+1` and `0.0.1+2` both fail because only one component advanced.
 
 To make the failure block merging, configure a GitHub branch protection rule or
 ruleset for the repository's default branch and require this check by its exact
