@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "adapter_id": "metrophone-wp81-component-integration-v1",
+  "source": "deterministic Flutter widget render",
+  "resolution": [
+    480,
+    800
+  ],
+  "candidate_revision": "c5be53fd07b985c15c1b5258c0ddde911c3f62ad",
+  "component_package": "wp_pivot_flutter 2.3.0 at merge revision 72a8b6a",
+  "frames": [
+    "start.png",
+    "apps.png",
+    "alphabet.png",
+    "launch-exit-000.png",
+    "launch-exit-001.png",
+    "launch-exit-002.png",
+    "launch-exit-003.png",
+    "launch-exit-004.png",
+    "launch-exit-005.png",
+    "launch-exit-006.png",
+    "launch-exit-007.png",
+    "launch-exit-008.png",
+    "launch-exit-009.png",
+    "launch-exit-010.png",
+    "launch-exit-011.png",
+    "launch-exit-012.png",
+    "launch-exit-013.png",
+    "launch-exit-014.png",
+    "launch-exit-015.png",
+    "launch-exit-016.png",
+    "launch-exit-017.png",
+    "launch-exit-018.png"
+  ],
+  "launch_exit_frame_interval_ms": 16.667,
+  "claims": [
+    "launcher integration preserves measured static component geometry",
+    "launcher launch callback waits for the caller-owned scene exit",
+    "captured poses are produced by the shipping launcher widgets"
+  ],
+  "limits": [
+    "deterministic widget time is not Android physical latency",
+    "native host capture timing does not qualify an exact WP curve",
+    "fixture icons are generic fallbacks rather than Microsoft artwork"
+  ]
+}

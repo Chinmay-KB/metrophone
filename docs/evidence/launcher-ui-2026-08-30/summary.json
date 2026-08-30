@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-30",
+  "package_revision": "72a8b6a",
+  "package_version": "2.3.0",
+  "reference_viewport": [480, 800],
+  "android_runtime": {
+    "api": 35,
+    "resolution": [1080, 2400],
+    "density": 420,
+    "max_scaled_tile_edge_error_physical_px": 1
+  },
+  "static_geometry": {
+    "start": {"passed": true, "items": 11, "max_edge_error_px": 0},
+    "app_list": {"passed": true, "items": 10, "max_edge_error_px": 0},
+    "alphabet": {"passed": true, "items": 28, "max_edge_error_px": 0}
+  },
+  "motion": {
+    "launcher_exit_duration_ms": 280,
+    "deterministic_frame_interval_ms": 16.667,
+    "frames": 19,
+    "native_timing_claim": "qualitative only"
+  },
+  "sha256": {
+    "comparisons/start-report.json": "e0b5754f6f49b37340dc305f794eaf1bb684cc5a7a9ea76c0185f04f10a2751c",
+    "comparisons/apps-report.json": "bd00a55f2dddf02d206c433e1fc616f37eafb0cf8d9c37035c978daa7ac318e9",
+    "comparisons/alphabet-report.json": "1b2ed1b40689952d14e5c74c27241965437c5ce6e921b848a4ea1550786ab2cf",
+    "round-02/walkthrough.mp4": "8a87c785957ca40eb6c828b611872b7b3c89095b188eb8ebd76f896347288008",
+    "round-03/apps.png": "03e572460d8d9d3a7465849a6628042dc234617594276be64be600affb9890b2",
+    "round-03/alphabet.png": "b5b9a28ab0d4e6901f1d2bc2452401ba39eaa418b36921eba1d8e3b8053b99b7",
+    "deterministic/manifest.json": "3eabd27027d4f06270523489d4c2d97cbef2e36ed263f410caaf4c6485a99031",
+    "deterministic/launch-exit.mp4": "a8cc0b1530c6b1e10f0738ae70044bde08d02efa86ebb558196c1f032b40586f",
+    "audit/lib-final.json": "fab7e558448396faea439251b3e62b59715b25a7b1998ed77e6762a4430c8d12",
+    "audit/test-final.json": "1537a08f47c9475b05409a1efdbf135f87ca144190f7a2c40ac1160ce25bafdf",
+    "audit/tool-final.json": "2ac6d8fed6c4ad1f1447d65aa095298f5036b745d86c4a793e755d777a636dc8"
+  }
+}

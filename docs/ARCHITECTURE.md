@@ -7,23 +7,24 @@ boundary. Flutter owns launcher state and rendering; Kotlin owns capabilities
 that only Android can provide.
 
 ```text
-Flutter UI (replaceable)
-        |
-LauncherController
-   |             |
-TileStore     LauncherPlatform
-   |             |
-Shared prefs  MethodChannel + EventChannel
-                  |
-           Android LauncherBridge
-             |       |       |
-          packages  roles   notifications
+wp_pivot_flutter primitives + Metrophone launcher policy
+                         |
+                 LauncherController
+                    |             |
+                TileStore     LauncherPlatform
+                    |             |
+              Shared prefs  MethodChannel + EventChannel
+                                   |
+                            Android LauncherBridge
+                              |       |       |
+                           packages  roles   notifications
 ```
 
-The UI consumes `LauncherController` only. A redesign should replace widgets in
-`lib/src/ui` while retaining the controller, models, store, and platform layer.
-The current two-page shell is hosted by `WpPivotView`, so the component library
-remains the navigation and motion foundation rather than a one-off visual import.
+The UI consumes `LauncherController` only. `WpSplitSurfaceView` hosts the Start
+and apps surfaces; `WpTileGrid`, `WpTile`, `WpAppListView`, `WpAlphabetGrid`,
+and `WpStaggeredSceneTransition` supply reusable Windows Phone geometry and
+motion. Metrophone retains Android catalog/launch behavior, persistence,
+first-fit placement, search, pinning, live-content, and sequencing policy.
 
 ## Startup flow
 
@@ -53,17 +54,17 @@ The notification listener stores active notifications by Android notification
 key. The event channel emits posted, removed, and reset events. Flutter aggregates
 the latest title/text and active count per package into `LiveTileContent`.
 
-The pipeline is presentation-neutral. A final tile UI can rotate, flip, paginate,
-or suppress content without changing Android integration. Notification text must
-be treated as private user data: keep it on-device, avoid analytics, respect lock
-screen privacy, and provide per-tile opt-out.
+The pipeline is presentation-neutral. The current wide-tile presentation can
+evolve without changing Android integration. Notification text must be treated
+as private user data: keep it on-device, avoid analytics, respect lock-screen
+privacy, and preserve per-tile opt-out.
 
 ## Extension points
 
 - Replace shared preferences with a database when tile layouts gain folders,
   multiple screens, or migration-heavy schemas.
-- Add an icon memory/disk cache behind `LauncherPlatform.getAppIcon` once the final
-  density and invalidation behavior are known.
+- Add an icon memory/disk cache behind `LauncherPlatform.getAppIcon` when its
+  density and invalidation contract is defined.
 - Add package-change broadcasts to refresh the catalog immediately instead of
   relying on resume/manual refresh.
 - Add app shortcuts and widgets behind separate repositories; do not overload

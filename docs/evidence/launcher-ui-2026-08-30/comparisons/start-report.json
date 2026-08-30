@@ -1,0 +1,296 @@
+{
+  "schema_version": 1,
+  "adapter_id": "start-screen-wp81-wvga-rest-geometry-v1",
+  "native_source": "Microsoft WP8.1 WVGA emulator held-out frame",
+  "flutter_source": "deterministic Flutter widget render",
+  "native_frame": "C:\\Users\\Chinmay\\wp_pivot_flutter_site\\artifacts\\launcher-primitives-01\\runs\\capture\\shell-observatory-01\\start_rest_r03\\frames\\000000.png",
+  "native_sha256": "dad7481c300b4e80a50da82599f146d44fa7525b8158d66bacbb472db037a5e6",
+  "flutter_frame": "C:\\wp_launcher\\artifacts\\launcher-ui-01\\runs\\flutter\\integration-candidate-06\\start.png",
+  "flutter_sha256": "8769972f3f719630662586e5e144187d812e9088d4d6daa59dbb97094e0f303a",
+  "flutter_manifest": "C:\\wp_launcher\\artifacts\\launcher-ui-01\\runs\\flutter\\integration-candidate-06\\manifest.json",
+  "flutter_manifest_sha256": "3eabd27027d4f06270523489d4c2d97cbef2e36ed263f410caaf4c6485a99031",
+  "tolerance_px": 1,
+  "measurement": "inclusive flat-color connected-component bounds",
+  "claims": [
+    "resting tile surface geometry only",
+    "no icon, text, font, motion, runtime, or physical-latency claim"
+  ],
+  "tiles": [
+    {
+      "name": "phone",
+      "color": "#3e65ff",
+      "expected_bbox_inclusive": [
+        24,
+        56,
+        233,
+        265
+      ],
+      "native_bbox_inclusive": [
+        24,
+        56,
+        233,
+        265
+      ],
+      "flutter_bbox_inclusive": [
+        24,
+        56,
+        233,
+        265
+      ],
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "messaging",
+      "color": "#3e65ff",
+      "expected_bbox_inclusive": [
+        246,
+        56,
+        344,
+        154
+      ],
+      "native_bbox_inclusive": [
+        246,
+        56,
+        344,
+        154
+      ],
+      "flutter_bbox_inclusive": [
+        246,
+        56,
+        344,
+        154
+      ],
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "browser",
+      "color": "#3e65ff",
+      "expected_bbox_inclusive": [
+        357,
+        56,
+        455,
+        154
+      ],
+      "native_bbox_inclusive": [
+        357,
+        56,
+        455,
+        154
+      ],
+      "flutter_bbox_inclusive": [
+        357,
+        56,
+        455,
+        154
+      ],
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "mail",
+      "color": "#3e65ff",
+      "expected_bbox_inclusive": [
+        246,
+        167,
+        344,
+        265
+      ],
+      "native_bbox_inclusive": [
+        246,
+        167,
+        344,
+        265
+      ],
+      "flutter_bbox_inclusive": [
+        246,
+        167,
+        344,
+        265
+      ],
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "store",
+      "color": "#3e65ff",
+      "expected_bbox_inclusive": [
+        357,
+        167,
+        455,
+        265
+      ],
+      "native_bbox_inclusive": [
+        357,
+        167,
+        455,
+        265
+      ],
+      "flutter_bbox_inclusive": [
+        357,
+        167,
+        455,
+        265
+      ],
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "music",
+      "color": "#107c10",
+      "expected_bbox_inclusive": [
+        246,
+        278,
+        344,
+        376
+      ],
+      "native_bbox_inclusive": [
+        246,
+        278,
+        344,
+        376
+      ],
+      "flutter_bbox_inclusive": [
+        246,
+        278,
+        344,
+        376
+      ],
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "games",
+      "color": "#107c10",
+      "expected_bbox_inclusive": [
+        357,
+        278,
+        455,
+        376
+      ],
+      "native_bbox_inclusive": [
+        357,
+        278,
+        455,
+        376
+      ],
+      "flutter_bbox_inclusive": [
+        357,
+        278,
+        455,
+        376
+      ],
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "office",
+      "color": "#eb3c00",
+      "expected_bbox_inclusive": [
+        246,
+        389,
+        344,
+        487
+      ],
+      "native_bbox_inclusive": [
+        246,
+        389,
+        344,
+        487
+      ],
+      "flutter_bbox_inclusive": [
+        246,
+        389,
+        344,
+        487
+      ],
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "notes",
+      "color": "#80397b",
+      "expected_bbox_inclusive": [
+        357,
+        389,
+        455,
+        487
+      ],
+      "native_bbox_inclusive": [
+        357,
+        389,
+        455,
+        487
+      ],
+      "flutter_bbox_inclusive": [
+        357,
+        389,
+        455,
+        487
+      ],
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "calendar",
+      "color": "#3e65ff",
+      "expected_bbox_inclusive": [
+        24,
+        500,
+        233,
+        709
+      ],
+      "native_bbox_inclusive": [
+        24,
+        500,
+        233,
+        709
+      ],
+      "flutter_bbox_inclusive": [
+        24,
+        500,
+        233,
+        709
+      ],
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "kids",
+      "color": "#3e65ff",
+      "expected_bbox_inclusive": [
+        246,
+        500,
+        455,
+        709
+      ],
+      "native_bbox_inclusive": [
+        246,
+        500,
+        455,
+        709
+      ],
+      "flutter_bbox_inclusive": [
+        246,
+        500,
+        455,
+        709
+      ],
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    }
+  ],
+  "passed": true
+}

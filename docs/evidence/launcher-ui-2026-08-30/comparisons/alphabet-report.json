@@ -1,0 +1,750 @@
+{
+  "schema_version": 1,
+  "adapter_id": "start-screen-wp81-wvga-alphabet-geometry-v1",
+  "native_source": "Microsoft WP8.1 WVGA emulator held-out frame",
+  "flutter_source": "deterministic Flutter widget render",
+  "surface": "alphabet",
+  "native_frame": "C:\\Users\\Chinmay\\wp_pivot_flutter_site\\artifacts\\launcher-primitives-01\\runs\\capture\\alphabet-select-corrected-01\\alphabet_grid_select_r03\\reset.png",
+  "native_sha256": "4a60df8706418e5233d8d928d65cf315598ccdcf8f8e340dae60e52bcae9fe47",
+  "flutter_frame": "C:\\wp_launcher\\artifacts\\launcher-ui-01\\runs\\flutter\\integration-candidate-06\\alphabet.png",
+  "flutter_sha256": "85ca5b66baad6617cd3e9be0bf28ee8adfd3f81dc896162325be9fc523e09c18",
+  "flutter_manifest": "C:\\wp_launcher\\artifacts\\launcher-ui-01\\runs\\flutter\\integration-candidate-06\\manifest.json",
+  "flutter_manifest_sha256": "3eabd27027d4f06270523489d4c2d97cbef2e36ed263f410caaf4c6485a99031",
+  "tolerance_px": 1,
+  "measurement": "inclusive flat-color connected-component bounds",
+  "claims": [
+    "resting alphabet surface geometry only",
+    "no icon, text, font, motion, runtime, or physical-latency claim"
+  ],
+  "items": [
+    {
+      "name": "cell-#",
+      "expected_bbox_inclusive": [
+        24,
+        19,
+        122,
+        117
+      ],
+      "native_bbox_inclusive": [
+        24,
+        19,
+        122,
+        117
+      ],
+      "flutter_bbox_inclusive": [
+        24,
+        19,
+        122,
+        117
+      ],
+      "native_color": "#1f1f1f",
+      "flutter_color": "#202020",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-a",
+      "expected_bbox_inclusive": [
+        135,
+        19,
+        233,
+        117
+      ],
+      "native_bbox_inclusive": [
+        135,
+        19,
+        233,
+        117
+      ],
+      "flutter_bbox_inclusive": [
+        135,
+        19,
+        233,
+        117
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-b",
+      "expected_bbox_inclusive": [
+        246,
+        19,
+        344,
+        117
+      ],
+      "native_bbox_inclusive": [
+        246,
+        19,
+        344,
+        117
+      ],
+      "flutter_bbox_inclusive": [
+        246,
+        19,
+        344,
+        117
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-c",
+      "expected_bbox_inclusive": [
+        357,
+        19,
+        455,
+        117
+      ],
+      "native_bbox_inclusive": [
+        357,
+        19,
+        455,
+        117
+      ],
+      "flutter_bbox_inclusive": [
+        357,
+        19,
+        455,
+        117
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-d",
+      "expected_bbox_inclusive": [
+        24,
+        130,
+        122,
+        228
+      ],
+      "native_bbox_inclusive": [
+        24,
+        130,
+        122,
+        228
+      ],
+      "flutter_bbox_inclusive": [
+        24,
+        130,
+        122,
+        228
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-e",
+      "expected_bbox_inclusive": [
+        135,
+        130,
+        233,
+        228
+      ],
+      "native_bbox_inclusive": [
+        135,
+        130,
+        233,
+        228
+      ],
+      "flutter_bbox_inclusive": [
+        135,
+        130,
+        233,
+        228
+      ],
+      "native_color": "#1f1f1f",
+      "flutter_color": "#202020",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-f",
+      "expected_bbox_inclusive": [
+        246,
+        130,
+        344,
+        228
+      ],
+      "native_bbox_inclusive": [
+        246,
+        130,
+        344,
+        228
+      ],
+      "flutter_bbox_inclusive": [
+        246,
+        130,
+        344,
+        228
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-g",
+      "expected_bbox_inclusive": [
+        357,
+        130,
+        455,
+        228
+      ],
+      "native_bbox_inclusive": [
+        357,
+        130,
+        455,
+        228
+      ],
+      "flutter_bbox_inclusive": [
+        357,
+        130,
+        455,
+        228
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-h",
+      "expected_bbox_inclusive": [
+        24,
+        241,
+        122,
+        339
+      ],
+      "native_bbox_inclusive": [
+        24,
+        241,
+        122,
+        339
+      ],
+      "flutter_bbox_inclusive": [
+        24,
+        241,
+        122,
+        339
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-i",
+      "expected_bbox_inclusive": [
+        135,
+        241,
+        233,
+        339
+      ],
+      "native_bbox_inclusive": [
+        135,
+        241,
+        233,
+        339
+      ],
+      "flutter_bbox_inclusive": [
+        135,
+        241,
+        233,
+        339
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-j",
+      "expected_bbox_inclusive": [
+        246,
+        241,
+        344,
+        339
+      ],
+      "native_bbox_inclusive": [
+        246,
+        241,
+        344,
+        339
+      ],
+      "flutter_bbox_inclusive": [
+        246,
+        241,
+        344,
+        339
+      ],
+      "native_color": "#1f1f1f",
+      "flutter_color": "#202020",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-k",
+      "expected_bbox_inclusive": [
+        357,
+        241,
+        455,
+        339
+      ],
+      "native_bbox_inclusive": [
+        357,
+        241,
+        455,
+        339
+      ],
+      "flutter_bbox_inclusive": [
+        357,
+        241,
+        455,
+        339
+      ],
+      "native_color": "#1f1f1f",
+      "flutter_color": "#202020",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-l",
+      "expected_bbox_inclusive": [
+        24,
+        352,
+        122,
+        450
+      ],
+      "native_bbox_inclusive": [
+        24,
+        352,
+        122,
+        450
+      ],
+      "flutter_bbox_inclusive": [
+        24,
+        352,
+        122,
+        450
+      ],
+      "native_color": "#1f1f1f",
+      "flutter_color": "#202020",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-m",
+      "expected_bbox_inclusive": [
+        135,
+        352,
+        233,
+        450
+      ],
+      "native_bbox_inclusive": [
+        135,
+        352,
+        233,
+        450
+      ],
+      "flutter_bbox_inclusive": [
+        135,
+        352,
+        233,
+        450
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-n",
+      "expected_bbox_inclusive": [
+        246,
+        352,
+        344,
+        450
+      ],
+      "native_bbox_inclusive": [
+        246,
+        352,
+        344,
+        450
+      ],
+      "flutter_bbox_inclusive": [
+        246,
+        352,
+        344,
+        450
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-o",
+      "expected_bbox_inclusive": [
+        357,
+        352,
+        455,
+        450
+      ],
+      "native_bbox_inclusive": [
+        357,
+        352,
+        455,
+        450
+      ],
+      "flutter_bbox_inclusive": [
+        357,
+        352,
+        455,
+        450
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-p",
+      "expected_bbox_inclusive": [
+        24,
+        463,
+        122,
+        561
+      ],
+      "native_bbox_inclusive": [
+        24,
+        463,
+        122,
+        561
+      ],
+      "flutter_bbox_inclusive": [
+        24,
+        463,
+        122,
+        561
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-q",
+      "expected_bbox_inclusive": [
+        135,
+        463,
+        233,
+        561
+      ],
+      "native_bbox_inclusive": [
+        135,
+        463,
+        233,
+        561
+      ],
+      "flutter_bbox_inclusive": [
+        135,
+        463,
+        233,
+        561
+      ],
+      "native_color": "#1f1f1f",
+      "flutter_color": "#202020",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-r",
+      "expected_bbox_inclusive": [
+        246,
+        463,
+        344,
+        561
+      ],
+      "native_bbox_inclusive": [
+        246,
+        463,
+        344,
+        561
+      ],
+      "flutter_bbox_inclusive": [
+        246,
+        463,
+        344,
+        561
+      ],
+      "native_color": "#1f1f1f",
+      "flutter_color": "#202020",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-s",
+      "expected_bbox_inclusive": [
+        357,
+        463,
+        455,
+        561
+      ],
+      "native_bbox_inclusive": [
+        357,
+        463,
+        455,
+        561
+      ],
+      "flutter_bbox_inclusive": [
+        357,
+        463,
+        455,
+        561
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-t",
+      "expected_bbox_inclusive": [
+        24,
+        574,
+        122,
+        672
+      ],
+      "native_bbox_inclusive": [
+        24,
+        574,
+        122,
+        672
+      ],
+      "flutter_bbox_inclusive": [
+        24,
+        574,
+        122,
+        672
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-u",
+      "expected_bbox_inclusive": [
+        135,
+        574,
+        233,
+        672
+      ],
+      "native_bbox_inclusive": [
+        135,
+        574,
+        233,
+        672
+      ],
+      "flutter_bbox_inclusive": [
+        135,
+        574,
+        233,
+        672
+      ],
+      "native_color": "#1f1f1f",
+      "flutter_color": "#202020",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-v",
+      "expected_bbox_inclusive": [
+        246,
+        574,
+        344,
+        672
+      ],
+      "native_bbox_inclusive": [
+        246,
+        574,
+        344,
+        672
+      ],
+      "flutter_bbox_inclusive": [
+        246,
+        574,
+        344,
+        672
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-w",
+      "expected_bbox_inclusive": [
+        357,
+        574,
+        455,
+        672
+      ],
+      "native_bbox_inclusive": [
+        357,
+        574,
+        455,
+        672
+      ],
+      "flutter_bbox_inclusive": [
+        357,
+        574,
+        455,
+        672
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-x",
+      "expected_bbox_inclusive": [
+        24,
+        685,
+        122,
+        783
+      ],
+      "native_bbox_inclusive": [
+        24,
+        685,
+        122,
+        783
+      ],
+      "flutter_bbox_inclusive": [
+        24,
+        685,
+        122,
+        783
+      ],
+      "native_color": "#1f1f1f",
+      "flutter_color": "#202020",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-y",
+      "expected_bbox_inclusive": [
+        135,
+        685,
+        233,
+        783
+      ],
+      "native_bbox_inclusive": [
+        135,
+        685,
+        233,
+        783
+      ],
+      "flutter_bbox_inclusive": [
+        135,
+        685,
+        233,
+        783
+      ],
+      "native_color": "#1f1f1f",
+      "flutter_color": "#202020",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-z",
+      "expected_bbox_inclusive": [
+        246,
+        685,
+        344,
+        783
+      ],
+      "native_bbox_inclusive": [
+        246,
+        685,
+        344,
+        783
+      ],
+      "flutter_bbox_inclusive": [
+        246,
+        685,
+        344,
+        783
+      ],
+      "native_color": "#1f1f1f",
+      "flutter_color": "#202020",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cell-globe",
+      "expected_bbox_inclusive": [
+        357,
+        685,
+        455,
+        783
+      ],
+      "native_bbox_inclusive": [
+        357,
+        685,
+        455,
+        783
+      ],
+      "flutter_bbox_inclusive": [
+        357,
+        685,
+        455,
+        783
+      ],
+      "native_color": "#1f1f1f",
+      "flutter_color": "#202020",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    }
+  ],
+  "passed": true
+}

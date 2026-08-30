@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-08-30T23:29:39.135073+00:00",
+  "root": "C:\\wp_launcher\\test",
+  "files": [
+    {
+      "file": "launcher_controller_test.dart",
+      "bytes": 5936,
+      "sha256": "1ec756ffaf0f467195414b46ae847269b49ff9a4ca8802a69ec73f6e38235665"
+    },
+    {
+      "file": "launcher_screen_test.dart",
+      "bytes": 7155,
+      "sha256": "492f9574197e739f0f4b8c0ef412e3b7da4fd06ca77a5957196b85774301cfa6"
+    },
+    {
+      "file": "launcher_tile_layout_test.dart",
+      "bytes": 1788,
+      "sha256": "597b484f875513c8c3065245bb46e02a83c69d63daade7298edf29b2e93f5550"
+    },
+    {
+      "file": "pinned_tile_test.dart",
+      "bytes": 512,
+      "sha256": "574a6a4ff9450d54d25c94b96c116dff958830c2d4d3d12f25bdc218c4ca30a2"
+    },
+    {
+      "file": "support/fake_launcher_platform.dart",
+      "bytes": 1855,
+      "sha256": "65e1b61b63bb481f464c273097da616ab808988bc30588fdc1aabb770ecf8587"
+    }
+  ]
+}

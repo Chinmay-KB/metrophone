@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:wp_pivot_flutter/wp_components.dart';
 import 'package:wp_pivot_flutter/wp_pivot_flutter.dart';
 
 import 'controller/launcher_controller.dart';
@@ -26,10 +28,29 @@ class MetrophoneApp extends StatelessWidget {
         surface: Color(0xff111111),
       ),
       fontFamily: wpPivotFontFamily,
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: Color(0xff3e65ff),
+        selectionColor: Color(0x993e65ff),
+        selectionHandleColor: Color(0xff3e65ff),
+      ),
     ),
-    home: LauncherScreen(
-      controller: controller,
-      disposeController: disposeController,
+    builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.black,
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarDividerColor: Colors.black,
+      ),
+      child: ColoredBox(color: Colors.black, child: child!),
+    ),
+    home: WpPhoneTheme(
+      data: const WpPhoneThemeData.dark(),
+      child: LauncherScreen(
+        controller: controller,
+        disposeController: disposeController,
+      ),
     ),
   );
 }

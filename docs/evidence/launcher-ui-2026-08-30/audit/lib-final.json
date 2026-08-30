@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-08-30T23:29:38.967037+00:00",
+  "root": "C:\\wp_launcher\\lib",
+  "files": [
+    {
+      "file": "main.dart",
+      "bytes": 972,
+      "sha256": "b4ef15371213db1d18e3a4c47f9cfc24ca2d5a391834f83e0c024c3da825b514"
+    },
+    {
+      "file": "src/app.dart",
+      "bytes": 1790,
+      "sha256": "aa92c8140f6b4d0ce9d3cebbe2d4508c664278dabb219175a7d8bf4688c71432"
+    },
+    {
+      "file": "src/controller/launcher_controller.dart",
+      "bytes": 7319,
+      "sha256": "26e2f6705a80fdba231ea07576564ff3faf06ccfa0fd52750b1d7371315529dd"
+    },
+    {
+      "file": "src/models/app_icon.dart",
+      "bytes": 357,
+      "sha256": "92cf5818a08c8cef84fb4dcf0e1150300469b03e742408574af7df1f0db36fca"
+    },
+    {
+      "file": "src/models/installed_app.dart",
+      "bytes": 646,
+      "sha256": "3e30b4914290d78caa31d1a3042fb0ebb7cbadc5a2677cbc72ea721d1db470da"
+    },
+    {
+      "file": "src/models/launcher_capabilities.dart",
+      "bytes": 1074,
+      "sha256": "331c9f81fb35a7d8a3c85b76003afd2d61d8a51497843fc42332b09fd92be0dd"
+    },
+    {
+      "file": "src/models/notification_snapshot.dart",
+      "bytes": 1934,
+      "sha256": "8da32906a878974f632059f073da2bdcece224c5b36309e2ec456a5c4c29ac88"
+    },
+    {
+      "file": "src/models/pinned_tile.dart",
+      "bytes": 811,
+      "sha256": "0b37363f01eedb7e89ac2777275987d8c0810a4835a14438bcbd83b9c7afe7a5"
+    },
+    {
+      "file": "src/platform/launcher_platform.dart",
+      "bytes": 680,
+      "sha256": "d89d35791b721e512fc66cdad090939c1060afb2baf1d6ddd9961238c4d52ee2"
+    },
+    {
+      "file": "src/platform/method_channel_launcher_platform.dart",
+      "bytes": 2964,
+      "sha256": "45f2d97b206264ab779cbdc748623b60f843fa2bfe9be9a6b07ab62c8af6ca7a"
+    },
+    {
+      "file": "src/storage/memory_tile_store.dart",
+      "bytes": 392,
+      "sha256": "add29a13ef9b1e620b36c294e3fd89f4b93cbfab507196bb7d2245068a636a89"
+    },
+    {
+      "file": "src/storage/tile_store.dart",
+      "bytes": 1182,
+      "sha256": "8c1c711f5f1bd66f62ed8e38d21a529c01cd62ce944fc0a8e051b8c40580e6f3"
+    },
+    {
+      "file": "src/ui/launcher_icon.dart",
+      "bytes": 1847,
+      "sha256": "dbeddebe6ff77b4e377c8c41823bda6849aa70f78fe83966a277d36e73ae46c5"
+    },
+    {
+      "file": "src/ui/launcher_screen.dart",
+      "bytes": 31643,
+      "sha256": "0b74112c5c8c07d4084e84bf98e47e2b89f0fe7ffee38c67060fab944157e671"
+    },
+    {
+      "file": "src/ui/launcher_tile_layout.dart",
+      "bytes": 2150,
+      "sha256": "cbb912bac20ae3388fe920813980dd47d7997b7f2ec43c8e46fa41a1e1b7fc2d"
+    }
+  ]
+}

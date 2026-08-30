@@ -1,0 +1,282 @@
+{
+  "schema_version": 1,
+  "adapter_id": "start-screen-wp81-wvga-app-list-geometry-v1",
+  "native_source": "Microsoft WP8.1 WVGA emulator held-out frame",
+  "flutter_source": "deterministic Flutter widget render",
+  "surface": "app-list",
+  "native_frame": "C:\\Users\\Chinmay\\wp_pivot_flutter_site\\artifacts\\launcher-primitives-01\\runs\\capture\\app-list-confirmation-01\\app_list_rest_r03\\reset.png",
+  "native_sha256": "b3dd263b23266086c29495002f2f497a6c86bc0e6be6b0e88f0bc91e5678d3b8",
+  "flutter_frame": "C:\\wp_launcher\\artifacts\\launcher-ui-01\\runs\\flutter\\integration-candidate-06\\apps.png",
+  "flutter_sha256": "fa78757e532ec6bd9270ca64cc5442b516e3426b979d6ba5d035e3772e764939",
+  "flutter_manifest": "C:\\wp_launcher\\artifacts\\launcher-ui-01\\runs\\flutter\\integration-candidate-06\\manifest.json",
+  "flutter_manifest_sha256": "3eabd27027d4f06270523489d4c2d97cbef2e36ed263f410caaf4c6485a99031",
+  "tolerance_px": 1,
+  "measurement": "inclusive flat-color connected-component bounds",
+  "claims": [
+    "resting app-list surface geometry only",
+    "no icon, text, font, motion, runtime, or physical-latency claim"
+  ],
+  "items": [
+    {
+      "name": "header-a",
+      "expected_bbox_inclusive": [
+        86,
+        57,
+        147,
+        118
+      ],
+      "native_bbox_inclusive": [
+        86,
+        57,
+        147,
+        118
+      ],
+      "flutter_bbox_inclusive": [
+        86,
+        57,
+        147,
+        118
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "alarms-icon",
+      "expected_bbox_inclusive": [
+        86,
+        131,
+        147,
+        192
+      ],
+      "native_bbox_inclusive": [
+        86,
+        131,
+        147,
+        192
+      ],
+      "flutter_bbox_inclusive": [
+        86,
+        131,
+        147,
+        192
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "header-b",
+      "expected_bbox_inclusive": [
+        86,
+        205,
+        147,
+        266
+      ],
+      "native_bbox_inclusive": [
+        86,
+        205,
+        147,
+        266
+      ],
+      "flutter_bbox_inclusive": [
+        86,
+        205,
+        147,
+        266
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "battery-icon",
+      "expected_bbox_inclusive": [
+        86,
+        279,
+        147,
+        340
+      ],
+      "native_bbox_inclusive": [
+        86,
+        279,
+        147,
+        340
+      ],
+      "flutter_bbox_inclusive": [
+        86,
+        279,
+        147,
+        340
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "header-c",
+      "expected_bbox_inclusive": [
+        86,
+        353,
+        147,
+        414
+      ],
+      "native_bbox_inclusive": [
+        86,
+        353,
+        147,
+        414
+      ],
+      "flutter_bbox_inclusive": [
+        86,
+        353,
+        147,
+        414
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "calculator-icon",
+      "expected_bbox_inclusive": [
+        86,
+        427,
+        147,
+        488
+      ],
+      "native_bbox_inclusive": [
+        86,
+        427,
+        147,
+        488
+      ],
+      "flutter_bbox_inclusive": [
+        86,
+        427,
+        147,
+        488
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "calendar-icon",
+      "expected_bbox_inclusive": [
+        86,
+        501,
+        147,
+        562
+      ],
+      "native_bbox_inclusive": [
+        86,
+        501,
+        147,
+        562
+      ],
+      "flutter_bbox_inclusive": [
+        86,
+        501,
+        147,
+        562
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "camera-icon",
+      "expected_bbox_inclusive": [
+        86,
+        575,
+        147,
+        636
+      ],
+      "native_bbox_inclusive": [
+        86,
+        575,
+        147,
+        636
+      ],
+      "flutter_bbox_inclusive": [
+        86,
+        575,
+        147,
+        636
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "cortana-icon",
+      "expected_bbox_inclusive": [
+        86,
+        649,
+        147,
+        710
+      ],
+      "native_bbox_inclusive": [
+        86,
+        649,
+        147,
+        710
+      ],
+      "flutter_bbox_inclusive": [
+        86,
+        649,
+        147,
+        710
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    },
+    {
+      "name": "header-d",
+      "expected_bbox_inclusive": [
+        86,
+        723,
+        147,
+        784
+      ],
+      "native_bbox_inclusive": [
+        86,
+        723,
+        147,
+        784
+      ],
+      "flutter_bbox_inclusive": [
+        86,
+        723,
+        147,
+        784
+      ],
+      "native_color": "#3e65ff",
+      "flutter_color": "#3e65ff",
+      "native_max_edge_error_px": 0,
+      "flutter_max_edge_error_px": 0,
+      "passed": true
+    }
+  ],
+  "passed": true
+}

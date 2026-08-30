@@ -46,3 +46,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Local UI fidelity workbench outputs. Publish selected evidence under docs/.
+/artifacts/
+/.impeccable/review/
