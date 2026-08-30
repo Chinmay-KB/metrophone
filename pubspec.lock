@@ -375,9 +375,11 @@ packages:
   wp_pivot_flutter:
     dependency: "direct main"
     description:
-      path: "../Users/Chinmay/wp_pivot_flutter_site"
-      relative: true
-    source: path
+      path: "."
+      ref: d9d33a6
+      resolved-ref: d9d33a6c75f6ec37a700b1972d8c38cadf1f0cf7
+      url: "https://github.com/Chinmay-KB/wp_pivot_flutter.git"
+    source: git
     version: "2.2.0"
   xdg_directories:
     dependency: transitive
