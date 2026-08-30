@@ -16,6 +16,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.text.Collator
 import java.util.Locale
+import java.util.concurrent.Executors
 
 class LauncherBridge(
     private val activity: MainActivity,
@@ -24,6 +25,7 @@ class LauncherBridge(
     private val packageManager = activity.packageManager
     private val methods = MethodChannel(messenger, METHOD_CHANNEL)
     private val events = EventChannel(messenger, EVENT_CHANNEL)
+    private val worker = Executors.newSingleThreadExecutor()
 
     init {
         methods.setMethodCallHandler(this)
@@ -32,10 +34,9 @@ class LauncherBridge(
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
-            "getInstalledApps" -> runCatching { installedApps() }.fold(
-                onSuccess = result::success,
-                onFailure = { result.error("catalog_failed", it.message, null) },
-            )
+            "getInstalledApps" -> background(result, "catalog_failed") {
+                installedApps()
+            }
             "getAppIcon" -> getAppIcon(call, result)
             "launchApp" -> result.success(launchApp(call))
             "getCapabilities" -> result.success(capabilities())
@@ -100,23 +101,17 @@ class LauncherBridge(
         }
         val size = (call.argument<Int>("size") ?: 144).coerceIn(48, 512)
         val monochrome = call.argument<Boolean>("monochrome") ?: false
-        runCatching {
-            IconRenderer.render(
+        background(result, "icon_failed") {
+            val icon = IconRenderer.render(
                 drawable = packageManager.getApplicationIcon(packageName),
                 size = size,
                 monochrome = monochrome,
             )
-        }.fold(
-            onSuccess = { icon ->
-                result.success(
-                    mapOf(
-                        "bytes" to icon.pngBytes,
-                        "isNativeMonochrome" to icon.isNativeMonochrome,
-                    ),
-                )
-            },
-            onFailure = { result.error("icon_failed", it.message, null) },
-        )
+            mapOf(
+                "bytes" to icon.pngBytes,
+                "isNativeMonochrome" to icon.isNativeMonochrome,
+            )
+        }
     }
 
     private fun launchApp(call: MethodCall): Boolean {
@@ -209,6 +204,22 @@ class LauncherBridge(
         return true
     }
 
+    private fun background(
+        result: MethodChannel.Result,
+        errorCode: String,
+        operation: () -> Any?,
+    ) {
+        worker.execute {
+            val outcome = runCatching(operation)
+            activity.runOnUiThread {
+                outcome.fold(
+                    onSuccess = result::success,
+                    onFailure = { result.error(errorCode, it.message, null) },
+                )
+            }
+        }
+    }
+
     override fun onListen(arguments: Any?, sink: EventChannel.EventSink) {
         NotificationRepository.attach(sink)
     }
@@ -221,6 +232,7 @@ class LauncherBridge(
         methods.setMethodCallHandler(null)
         events.setStreamHandler(null)
         NotificationRepository.detach()
+        worker.shutdownNow()
     }
 
     companion object {
