@@ -24,6 +24,7 @@ class LauncherController extends ChangeNotifier {
   final TileStore _tileStore;
   final Map<String, NotificationSnapshot> _notifications = {};
   StreamSubscription<NotificationEvent>? _notificationSubscription;
+  bool _disposed = false;
 
   LauncherLoadState _state = LauncherLoadState.idle;
   LauncherLoadState get state => _state;
@@ -46,7 +47,7 @@ class LauncherController extends ChangeNotifier {
     if (_state == LauncherLoadState.loading) return;
     _state = LauncherLoadState.loading;
     _error = null;
-    notifyListeners();
+    _notifyIfActive();
 
     await _notificationSubscription?.cancel();
     _notificationSubscription = _platform.notificationEvents.listen(
@@ -83,22 +84,22 @@ class LauncherController extends ChangeNotifier {
       _error = error.toString();
       debugPrint('Metrophone initialization failed: $error\n$stackTrace');
     }
-    notifyListeners();
+    _notifyIfActive();
   }
 
   Future<void> refreshCatalog() async {
     _apps = List.unmodifiable(await _platform.getInstalledApps());
-    notifyListeners();
+    _notifyIfActive();
   }
 
   Future<void> refreshCapabilities() async {
     _capabilities = await _platform.getCapabilities();
-    notifyListeners();
+    _notifyIfActive();
   }
 
   Future<void> refreshNotifications() async {
     _replaceNotifications(await _platform.getActiveNotifications());
-    notifyListeners();
+    _notifyIfActive();
   }
 
   InstalledApp? appForPackage(String packageName) {
@@ -200,7 +201,7 @@ class LauncherController extends ChangeNotifier {
 
   Future<void> _persistTiles() async {
     await _tileStore.save(_tiles);
-    notifyListeners();
+    _notifyIfActive();
   }
 
   void _replaceNotifications(List<NotificationSnapshot> notifications) {
@@ -213,6 +214,7 @@ class LauncherController extends ChangeNotifier {
   }
 
   void _handleNotificationEvent(NotificationEvent event) {
+    if (_disposed) return;
     switch (event.type) {
       case NotificationEventType.posted:
         final notification = event.notification;
@@ -224,11 +226,16 @@ class LauncherController extends ChangeNotifier {
       case NotificationEventType.reset:
         unawaited(refreshNotifications());
     }
-    notifyListeners();
+    _notifyIfActive();
+  }
+
+  void _notifyIfActive() {
+    if (!_disposed) notifyListeners();
   }
 
   @override
   void dispose() {
+    _disposed = true;
     _notificationSubscription?.cancel();
     super.dispose();
   }

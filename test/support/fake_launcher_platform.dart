@@ -12,6 +12,7 @@ class FakeLauncherPlatform implements LauncherPlatform {
 
   List<InstalledApp> installedApps = const [];
   List<NotificationSnapshot> notifications = const [];
+  Completer<List<NotificationSnapshot>>? notificationGate;
   LauncherCapabilities currentCapabilities = LauncherCapabilities.unsupported;
   InstalledApp? launchedApp;
   bool requestedHomeRole = false;
@@ -53,7 +54,7 @@ class FakeLauncherPlatform implements LauncherPlatform {
 
   @override
   Future<List<NotificationSnapshot>> getActiveNotifications() async =>
-      notifications;
+      notificationGate?.future ?? notifications;
 
   @override
   Stream<NotificationEvent> get notificationEvents => events.stream;

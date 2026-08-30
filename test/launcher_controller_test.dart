@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:metrophone/src/controller/launcher_controller.dart';
 import 'package:metrophone/src/models/installed_app.dart';
@@ -153,6 +155,26 @@ void main() {
     expect(platform.launchedApp?.packageName, 'example.alpha');
     controller.dispose();
   });
+
+  test(
+    'ignores a notification refresh that completes after disposal',
+    () async {
+      final controller = LauncherController(
+        platform: platform,
+        tileStore: MemoryTileStore(),
+      );
+      await controller.initialize();
+      platform.notificationGate = Completer<List<NotificationSnapshot>>();
+      platform.events.add(
+        const NotificationEvent(type: NotificationEventType.reset),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      controller.dispose();
+      platform.notificationGate!.complete(const []);
+      await Future<void>.delayed(Duration.zero);
+    },
+  );
 }
 
 NotificationSnapshot _notification(
