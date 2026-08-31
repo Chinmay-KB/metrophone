@@ -33,8 +33,8 @@ Metrophone never changes another application's icon or APK.
    authored native monochrome layer.
 
 The fallback cannot infer the semantic logo inside every photographic or gradient
-legacy icon. The final UI should offer per-app icon overrides and retain the
-original-color icon as a fallback.
+legacy icon. A future icon-settings surface should offer per-app overrides and
+retain the original-color icon as a fallback.
 
 Relevant Android references:
 

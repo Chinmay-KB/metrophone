@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-08-30T23:29:39.327584+00:00",
+  "root": "C:\\wp_launcher\\tool",
+  "files": [
+    {
+      "file": "__pycache__/test_verify_version.cpython-312.pyc",
+      "bytes": 2575,
+      "sha256": "65b8a609fb89cdc958b1df3ab6cc291ea55774b0efe6b24419e308ed7446ab71"
+    },
+    {
+      "file": "__pycache__/verify_version.cpython-312.pyc",
+      "bytes": 6310,
+      "sha256": "9ca28308d77b51b38677fb76f7523d3e5ad83ba7a9958b0bd0bcece85cf3d728"
+    },
+    {
+      "file": "launcher_fidelity_capture_test.dart",
+      "bytes": 10515,
+      "sha256": "38a2703f85fec11e518cd866fa4be7af47fb68075ff65581d11f0f5a31cd690c"
+    },
+    {
+      "file": "test_verify_version.py",
+      "bytes": 1132,
+      "sha256": "595d787529e55eae6d4a3456c16e89942c36e6c6978771faec2c552106a3174f"
+    },
+    {
+      "file": "verify_version.py",
+      "bytes": 3474,
+      "sha256": "59281b0290a0c55d0fceb5c2e4236b24573d13007ffd4871540175d08548fd4d"
+    }
+  ]
+}
