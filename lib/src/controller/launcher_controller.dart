@@ -63,16 +63,24 @@ class LauncherController extends ChangeNotifier {
         _platform.getCapabilities(),
         _platform.getActiveNotifications(),
         _tileStore.load(),
+        _tileStore.hasStoredLayout(),
       ]);
       _apps = List.unmodifiable(values[0] as List<InstalledApp>);
       _capabilities = values[1] as LauncherCapabilities;
       _replaceNotifications(values[2] as List<NotificationSnapshot>);
       final installedPackages = {for (final app in _apps) app.packageName};
-      _tiles = List.unmodifiable(
+      final savedTiles = List<PinnedTile>.unmodifiable(
         (values[3] as List<PinnedTile>).where(
           (tile) => installedPackages.contains(tile.packageName),
         ),
       );
+      final hasStoredLayout = values[4] as bool;
+      if (!hasStoredLayout) {
+        _tiles = List.unmodifiable(_defaultTiles(_apps));
+        await _tileStore.save(_tiles);
+      } else {
+        _tiles = savedTiles;
+      }
       _state = LauncherLoadState.ready;
       debugPrint(
         'METROPHONE_READY apps=${_apps.length} '
@@ -168,6 +176,60 @@ class LauncherController extends ChangeNotifier {
     reordered.insert(target.clamp(0, reordered.length), tile);
     _tiles = List.unmodifiable(reordered);
     await _persistTiles();
+  }
+
+  /// Moves a tile to an explicit final index.  Gesture-driven Start reflow
+  /// uses this rather than the insertion-index semantics of [reorderTile].
+  Future<void> reorderTileTo(int oldIndex, int targetIndex) async {
+    if (oldIndex < 0 || oldIndex >= _tiles.length) return;
+    final reordered = [..._tiles];
+    final tile = reordered.removeAt(oldIndex);
+    reordered.insert(targetIndex.clamp(0, reordered.length), tile);
+    _tiles = List.unmodifiable(reordered);
+    await _persistTiles();
+  }
+
+  static List<PinnedTile> _defaultTiles(List<InstalledApp> apps) {
+    final remaining = _sortedApps(apps);
+    final selected = <InstalledApp>[];
+    const roleKeywords = [
+      ['phone', 'dialer'],
+      ['messaging', 'messages', 'sms'],
+      ['contacts', 'people'],
+      ['browser', 'chrome'],
+      ['camera'],
+      ['calendar'],
+      ['clock'],
+    ];
+    for (final keywords in roleKeywords) {
+      final match = remaining.where((app) {
+        final identity = '${app.label} ${app.packageName}'.toLowerCase();
+        return keywords.any(identity.contains);
+      }).firstOrNull;
+      if (match != null) {
+        selected.add(match);
+        remaining.remove(match);
+      }
+      if (selected.length == 4) break;
+    }
+    selected.addAll(remaining.take(4 - selected.length));
+    return [
+      for (var index = 0; index < selected.length; index++)
+        PinnedTile(
+          packageName: selected[index].packageName,
+          size: index == 0 ? TileSize.medium : TileSize.small,
+          liveEnabled: true,
+        ),
+    ];
+  }
+
+  static List<InstalledApp> _sortedApps(Iterable<InstalledApp> apps) {
+    final ordered = [...apps];
+    ordered.sort((a, b) {
+      final byLabel = a.label.toLowerCase().compareTo(b.label.toLowerCase());
+      return byLabel != 0 ? byLabel : a.packageName.compareTo(b.packageName);
+    });
+    return ordered;
   }
 
   Future<AppIcon> getIcon(
