@@ -17,6 +17,7 @@ class FakeLauncherPlatform implements LauncherPlatform {
   InstalledApp? launchedApp;
   bool requestedHomeRole = false;
   bool openedNotificationSettings = false;
+  bool launchSucceeds = true;
 
   @override
   Future<List<InstalledApp>> getInstalledApps() async => installedApps;
@@ -34,7 +35,7 @@ class FakeLauncherPlatform implements LauncherPlatform {
   @override
   Future<bool> launchApp(InstalledApp app) async {
     launchedApp = app;
-    return true;
+    return launchSucceeds;
   }
 
   @override

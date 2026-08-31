@@ -7,6 +7,10 @@ import '../models/pinned_tile.dart';
 abstract interface class TileStore {
   Future<List<PinnedTile>> load();
 
+  /// Whether a layout has actually been saved.  An empty saved list is a user
+  /// choice and is intentionally distinct from storage that has never existed.
+  Future<bool> hasStoredLayout();
+
   Future<void> save(List<PinnedTile> tiles);
 }
 
@@ -33,6 +37,10 @@ class SharedPreferencesTileStore implements TileStore {
       return const [];
     }
   }
+
+  @override
+  Future<bool> hasStoredLayout() async =>
+      await _preferences.getString(_key) != null;
 
   @override
   Future<void> save(List<PinnedTile> tiles) async {

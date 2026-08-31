@@ -19,6 +19,7 @@ import '../models/notification_snapshot.dart';
 import '../models/pinned_tile.dart';
 import 'launcher_icon.dart';
 import 'launcher_tile_layout.dart';
+import 'start_role_icon.dart';
 
 const _accent = Color(0xff3e65ff);
 const _referenceWidth = 480.0;
@@ -309,6 +310,13 @@ class _ReadyLauncherState extends State<_ReadyLauncher>
           sceneDirection: _sceneDirection,
           editingPackage: _editingPackage,
           onEditingChanged: (packageName) {
+            if (packageName != null) {
+              // Edit mode is a resting Start state. Never carry a launch or
+              // resume perspective pose into a long-press transition.
+              _sceneController.stop();
+              _sceneController.value = 1;
+              _sceneDirection = WpSceneTransitionDirection.enter;
+            }
             setState(() => _editingPackage = packageName);
           },
           onLaunch: _launchApp,
@@ -326,7 +334,7 @@ class _ReadyLauncherState extends State<_ReadyLauncher>
   );
 }
 
-class _StartSurface extends StatelessWidget {
+class _StartSurface extends StatefulWidget {
   const _StartSurface({
     required this.controller,
     required this.sceneAnimation,
@@ -346,92 +354,422 @@ class _StartSurface extends StatelessWidget {
   final VoidCallback onOpenApps;
 
   @override
+  State<_StartSurface> createState() => _StartSurfaceState();
+}
+
+class _StartSurfaceState extends State<_StartSurface> {
+  @override
   Widget build(BuildContext context) {
-    final slots = packLauncherTiles(controller.tiles);
-    final maxExitOrder = slots.fold<double>(
-      0,
-      (value, slot) => math.max(value, _exitOrder(slot)),
-    );
-    final maxEntryOrder = slots.fold<double>(
-      0,
-      (value, slot) => math.max(value, _entryOrder(slot)),
-    );
-    final referenceScale = MediaQuery.sizeOf(context).width / _referenceWidth;
+    final slots = packLauncherTiles(widget.controller.tiles);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return ColoredBox(
       color: Colors.black,
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onTap: () => onEditingChanged(null),
+        onTap: () => widget.onEditingChanged(null),
         child: Stack(
           key: const ValueKey('launcher-ready'),
           children: [
             if (slots.isEmpty)
-              _EmptyStartSurface(onOpenApps: onOpenApps)
+              _EmptyStartSurface(onOpenApps: widget.onOpenApps)
             else
               Positioned.fill(
-                top: 56 * referenceScale,
+                top: 56 * (MediaQuery.sizeOf(context).width / _referenceWidth),
                 child: ListView(
                   key: const ValueKey('start-tile-scroll'),
                   padding: EdgeInsets.only(bottom: 32 + bottomInset),
                   children: [
-                    WpTileGrid(
-                      placements: [
-                        for (final slot in slots)
-                          WpTilePlacement(
-                            row: slot.row,
-                            column: slot.column,
-                            rowSpan: slot.rowSpan,
-                            columnSpan: slot.columnSpan,
-                            child: WpStaggeredSceneTransition(
-                              animation: sceneAnimation,
-                              direction: sceneDirection,
-                              order: _exitOrder(slot),
-                              maxOrder: maxExitOrder,
-                              entryOrder: _entryOrder(slot),
-                              maxEntryOrder: maxEntryOrder,
-                              child: _LauncherTile(
-                                controller: controller,
-                                slot: slot,
-                                editing:
-                                    editingPackage == slot.tile.packageName,
-                                onEditingChanged: onEditingChanged,
-                                onLaunch: onLaunch,
-                              ),
-                            ),
-                          ),
-                      ],
+                    _AnimatedStartTileGrid(
+                      controller: widget.controller,
+                      sceneAnimation: widget.sceneAnimation,
+                      sceneDirection: widget.sceneDirection,
+                      editingPackage: widget.editingPackage,
+                      onEditingChanged: widget.onEditingChanged,
+                      onLaunch: widget.onLaunch,
                     ),
                   ],
                 ),
               ),
-            _SetupPanel(controller: controller),
+            _SetupPanel(controller: widget.controller),
           ],
         ),
       ),
     );
   }
 
-  static double _exitOrder(LauncherTileSlot slot) => math.min(
-    8,
-    WpStaggeredSceneGeometry.gridExitOrder(
-      column: slot.column,
-      columnSpan: slot.columnSpan,
-      columns: 4,
-      row: slot.row,
-    ),
-  );
+  static double _exitOrder(LauncherTileSlot slot) =>
+      math.min(8.0, 4 - slot.column - slot.columnSpan + slot.row * 0.5);
 
-  static double _entryOrder(LauncherTileSlot slot) => math.min(
-    8,
-    WpStaggeredSceneGeometry.gridEntryOrder(
-      column: slot.column,
-      columnSpan: slot.columnSpan,
-      columns: 4,
-      row: slot.row,
-    ),
-  );
+  static double _entryOrder(LauncherTileSlot slot) =>
+      math.min(8.0, slot.column + slot.columnSpan - 1 + slot.row * 0.5);
+}
+
+class _AnimatedStartTileGrid extends StatefulWidget {
+  const _AnimatedStartTileGrid({
+    required this.controller,
+    required this.sceneAnimation,
+    required this.sceneDirection,
+    required this.editingPackage,
+    required this.onEditingChanged,
+    required this.onLaunch,
+  });
+
+  final LauncherController controller;
+  final Animation<double> sceneAnimation;
+  final WpSceneTransitionDirection sceneDirection;
+  final String? editingPackage;
+  final ValueChanged<String?> onEditingChanged;
+  final Future<void> Function(InstalledApp app) onLaunch;
+
+  @override
+  State<_AnimatedStartTileGrid> createState() => _AnimatedStartTileGridState();
+}
+
+class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
+    with SingleTickerProviderStateMixin {
+  // A quarter of a small 99px tile is enough physical overlap to communicate
+  // intent while rejecting accidental 1--2px pointer tremor (and is twice the
+  // measured 12px Start gutter).
+  static const _activationOverlapFraction = 0.25;
+  List<PinnedTile>? _previewTiles;
+  String? _draggingPackage;
+  Offset _dragDelta = Offset.zero;
+  Offset? _dragStart;
+  double _reflowProgress = 0;
+  bool _previewCanCommit = false;
+  bool _motionReduced = false;
+  late final AnimationController _ambientController;
+
+  @override
+  void initState() {
+    super.initState();
+    _ambientController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3200),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _motionReduced = MediaQuery.disableAnimationsOf(context);
+    _syncAmbientMotion();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimatedStartTileGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncAmbientMotion();
+    if (widget.editingPackage == null && oldWidget.editingPackage != null) {
+      _draggingPackage = null;
+      _dragStart = null;
+      _dragDelta = Offset.zero;
+      _previewTiles = null;
+      _reflowProgress = 0;
+      _previewCanCommit = false;
+    }
+  }
+
+  void _syncAmbientMotion() {
+    if (widget.editingPackage != null && !_motionReduced) {
+      if (!_ambientController.isAnimating) _ambientController.repeat();
+    } else {
+      _ambientController
+        ..stop()
+        ..value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ambientController.dispose();
+    super.dispose();
+  }
+
+  void _startDrag(String packageName, PointerDownEvent event) {
+    if (widget.editingPackage != packageName) return;
+    setState(() {
+      _draggingPackage = packageName;
+      _dragStart = event.position;
+      _dragDelta = Offset.zero;
+      _previewTiles = null;
+      _reflowProgress = 0;
+      _previewCanCommit = false;
+    });
+  }
+
+  void _updateDrag(String packageName, PointerMoveEvent event, double scale) {
+    if (_draggingPackage != packageName || _dragStart == null) return;
+    final delta = (event.position - _dragStart!) / scale;
+    final original = widget.controller.tiles;
+    final originSlots = packLauncherTiles(original);
+    final origin = originSlots.firstWhere(
+      (slot) => slot.tile.packageName == packageName,
+    );
+    final movingRect = _slotRect(origin).shift(delta);
+    final candidates = originSlots.where(
+      (slot) => slot.tile.packageName != packageName,
+    );
+    LauncherTileSlot? target;
+    var largestOverlap = 0.0;
+    var largestOverlapFraction = 0.0;
+    for (final slot in candidates) {
+      final candidateRect = _slotRect(slot);
+      final overlap = movingRect.intersect(candidateRect);
+      final overlapArea =
+          (math.max(0, overlap.width) * math.max(0, overlap.height)).toDouble();
+      final comparisonArea = math.min(
+        movingRect.width * movingRect.height,
+        candidateRect.width * candidateRect.height,
+      );
+      if (overlapArea > largestOverlap) {
+        largestOverlap = overlapArea;
+        largestOverlapFraction = comparisonArea == 0
+            ? 0
+            : overlapArea / comparisonArea;
+        target = slot;
+      }
+    }
+    final preview = [...original];
+    final oldIndex = preview.indexWhere(
+      (tile) => tile.packageName == packageName,
+    );
+    if (target != null && largestOverlap > 0 && oldIndex >= 0) {
+      final moving = preview.removeAt(oldIndex);
+      preview.insert(target.index.clamp(0, preview.length), moving);
+    }
+    setState(() {
+      _dragDelta = delta;
+      _previewTiles = target == null || largestOverlap == 0 ? null : preview;
+      _reflowProgress = (largestOverlapFraction / _activationOverlapFraction)
+          .clamp(0.0, 1.0);
+      _previewCanCommit = largestOverlapFraction >= _activationOverlapFraction;
+    });
+  }
+
+  Rect _slotRect(LauncherTileSlot slot) {
+    final width = slot.columnSpan * 99 + (slot.columnSpan - 1) * 12.0;
+    final height = slot.rowSpan * 99 + (slot.rowSpan - 1) * 12.0;
+    return Rect.fromLTWH(slot.column * 111.0, slot.row * 111.0, width, height);
+  }
+
+  void _endDrag(String packageName) {
+    if (_draggingPackage != packageName) return;
+    final preview = _previewTiles;
+    final shouldCommit = _previewCanCommit;
+    final oldIndex = widget.controller.tiles.indexWhere(
+      (tile) => tile.packageName == packageName,
+    );
+    final newIndex = shouldCommit
+        ? preview?.indexWhere((tile) => tile.packageName == packageName) ??
+              oldIndex
+        : oldIndex;
+    setState(() {
+      _draggingPackage = null;
+      _dragStart = null;
+      _dragDelta = Offset.zero;
+      _previewCanCommit = false;
+      if (shouldCommit) {
+        _reflowProgress = 1;
+      } else {
+        _previewTiles = null;
+        _reflowProgress = 0;
+      }
+    });
+    if (oldIndex >= 0 && newIndex >= 0 && oldIndex != newIndex) {
+      unawaited(
+        widget.controller.reorderTileTo(oldIndex, newIndex).whenComplete(() {
+          if (!mounted) return;
+          setState(() {
+            _previewTiles = null;
+            _reflowProgress = 0;
+          });
+        }),
+      );
+    } else if (shouldCommit) {
+      setState(() {
+        _previewTiles = null;
+        _reflowProgress = 0;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final referenceScale = MediaQuery.sizeOf(context).width / _referenceWidth;
+    final tiles = _previewTiles ?? widget.controller.tiles;
+    final slots = packLauncherTiles(tiles);
+    final originalSlots = packLauncherTiles(widget.controller.tiles);
+    final previewLastRow = slots.fold<int>(
+      0,
+      (value, slot) => math.max(value, slot.row + slot.rowSpan),
+    );
+    final originalLastRow = originalSlots.fold<int>(
+      0,
+      (value, slot) => math.max(value, slot.row + slot.rowSpan),
+    );
+    final lastRow = math.max(previewLastRow, originalLastRow);
+    final maxExitOrder = slots.fold<double>(
+      0,
+      (value, slot) => math.max(value, _StartSurfaceState._exitOrder(slot)),
+    );
+    final maxEntryOrder = slots.fold<double>(
+      0,
+      (value, slot) => math.max(value, _StartSurfaceState._entryOrder(slot)),
+    );
+    final reducedMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    return SizedBox(
+      height: (lastRow * 111 - 12 + 32) * referenceScale,
+      child: Stack(
+        key: const ValueKey('start-tile-stack'),
+        clipBehavior: Clip.none,
+        children: [
+          for (final slot in slots.where(
+            (slot) => slot.tile.packageName != _draggingPackage,
+          ))
+            _buildSlot(
+              context,
+              slot,
+              originalSlots,
+              referenceScale,
+              reducedMotion,
+              maxExitOrder,
+              maxEntryOrder,
+            ),
+          for (final slot in slots.where(
+            (slot) => slot.tile.packageName == _draggingPackage,
+          ))
+            _buildSlot(
+              context,
+              slot,
+              originalSlots,
+              referenceScale,
+              reducedMotion,
+              maxExitOrder,
+              maxEntryOrder,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSlot(
+    BuildContext context,
+    LauncherTileSlot slot,
+    List<LauncherTileSlot> originalSlots,
+    double scale,
+    bool reducedMotion,
+    double maxExitOrder,
+    double maxEntryOrder,
+  ) {
+    final packageName = slot.tile.packageName;
+    final dragging = packageName == _draggingPackage;
+    final origin = originalSlots.firstWhere(
+      (item) => item.tile.packageName == packageName,
+    );
+    final positioned = dragging ? origin : slot;
+    final isSelected = widget.editingPackage == packageName;
+    final inEdit = widget.editingPackage != null;
+    final width =
+        (positioned.columnSpan * 99 + (positioned.columnSpan - 1) * 12) * scale;
+    final height =
+        (positioned.rowSpan * 99 + (positioned.rowSpan - 1) * 12) * scale;
+    final column = dragging
+        ? origin.column.toDouble()
+        : _lerp(
+            origin.column.toDouble(),
+            slot.column.toDouble(),
+            _reflowProgress,
+          );
+    final row = dragging
+        ? origin.row.toDouble()
+        : _lerp(origin.row.toDouble(), slot.row.toDouble(), _reflowProgress);
+    Widget tile = Listener(
+      onPointerDown: (event) => _startDrag(packageName, event),
+      onPointerMove: (event) => _updateDrag(packageName, event, scale),
+      onPointerUp: (_) => _endDrag(packageName),
+      onPointerCancel: (_) => _endDrag(packageName),
+      child: AnimatedScale(
+        key: ValueKey('tile-edit-scale-$packageName'),
+        duration: reducedMotion
+            ? Duration.zero
+            : const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        scale: inEdit ? (isSelected ? 1.06 : 0.92) : 1,
+        child: AnimatedOpacity(
+          key: ValueKey('tile-edit-opacity-$packageName'),
+          duration: reducedMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 160),
+          opacity: inEdit && !isSelected ? 0.72 : 1,
+          child: WpStaggeredSceneTransition(
+            animation: widget.sceneAnimation,
+            direction: widget.sceneDirection,
+            order: _StartSurfaceState._exitOrder(slot),
+            maxOrder: maxExitOrder,
+            entryOrder: _StartSurfaceState._entryOrder(slot),
+            maxEntryOrder: maxEntryOrder,
+            alignment: Alignment.centerLeft,
+            child: _LauncherTile(
+              controller: widget.controller,
+              slot: slot,
+              editMode: inEdit,
+              editing: isSelected,
+              onEditingChanged: widget.onEditingChanged,
+              onLaunch: widget.onLaunch,
+            ),
+          ),
+        ),
+      ),
+    );
+    if (inEdit && !isSelected && !reducedMotion) {
+      final phase = _ambientPhase(packageName);
+      tile = AnimatedBuilder(
+        key: ValueKey('tile-edit-wiggle-$packageName'),
+        animation: _ambientController,
+        child: tile,
+        builder: (context, child) {
+          final time = _ambientController.value * math.pi * 2;
+          final offset = Offset(
+            math.sin(time + phase) * 1.4 * scale,
+            math.sin(time * 0.79 + phase * 1.7) * 1.1 * scale,
+          );
+          final angle = math.sin(time * 1.13 + phase * 0.6) * 0.0035;
+          return Transform.translate(
+            key: ValueKey('tile-edit-wiggle-offset-$packageName'),
+            offset: offset,
+            child: Transform.rotate(angle: angle, child: child),
+          );
+        },
+      );
+    }
+    return AnimatedPositioned(
+      key: ValueKey('tile-position-$packageName'),
+      duration: reducedMotion || _draggingPackage != null
+          ? Duration.zero
+          : const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      left:
+          (24 + column * 111) * scale + (dragging ? _dragDelta.dx * scale : 0),
+      top: row * 111 * scale + (dragging ? _dragDelta.dy * scale : 0),
+      width: width,
+      height: height,
+      child: tile,
+    );
+  }
+
+  static double _lerp(double start, double end, double progress) =>
+      start + (end - start) * progress;
+
+  static double _ambientPhase(String packageName) {
+    var seed = 0;
+    for (final codeUnit in packageName.codeUnits) {
+      seed = (seed * 31 + codeUnit) & 0x7fffffff;
+    }
+    return (seed % 360) / 360 * math.pi * 2;
+  }
 }
 
 class _EmptyStartSurface extends StatelessWidget {
@@ -476,6 +814,7 @@ class _LauncherTile extends StatelessWidget {
   const _LauncherTile({
     required this.controller,
     required this.slot,
+    required this.editMode,
     required this.editing,
     required this.onEditingChanged,
     required this.onLaunch,
@@ -483,6 +822,7 @@ class _LauncherTile extends StatelessWidget {
 
   final LauncherController controller;
   final LauncherTileSlot slot;
+  final bool editMode;
   final bool editing;
   final ValueChanged<String?> onEditingChanged;
   final Future<void> Function(InstalledApp app) onLaunch;
@@ -495,31 +835,58 @@ class _LauncherTile extends StatelessWidget {
     final live = tile.liveEnabled
         ? controller.liveContentFor(tile.packageName)
         : null;
-    return WpTile(
+    void handleTap() {
+      if (editMode) {
+        onEditingChanged(null);
+      } else {
+        unawaited(onLaunch(app));
+      }
+    }
+
+    void handleLongPress() => onEditingChanged(tile.packageName);
+
+    return Semantics(
       key: ValueKey('tile-${tile.packageName}'),
-      label: tile.size == TileSize.small ? null : app.label,
-      semanticLabel: app.label,
-      color: _tileColorFor(app),
-      editing: editing,
-      onTap: editing ? () => onEditingChanged(null) : () => onLaunch(app),
-      onLongPress: () => onEditingChanged(tile.packageName),
-      onUnpin: editing
-          ? () {
-              onEditingChanged(null);
-              unawaited(controller.unpinApp(tile.packageName));
-            }
-          : null,
-      onResize: editing
-          ? () {
-              onEditingChanged(null);
-              unawaited(controller.cycleTileSize(tile.packageName));
-            }
-          : null,
-      child: _TileBody(
-        controller: controller,
-        app: app,
-        tile: tile,
-        live: live,
+      container: true,
+      button: true,
+      enabled: true,
+      label: app.label,
+      onTap: handleTap,
+      onLongPress: handleLongPress,
+      // The selected tile's edit buttons remain separate semantic nodes.
+      excludeSemantics: !editing,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        excludeFromSemantics: true,
+        onTap: handleTap,
+        onLongPress: handleLongPress,
+        child: WpTile(
+          label: tile.size == TileSize.small ? null : app.label,
+          semanticLabel: app.label,
+          color: _tileColorFor(app),
+          editing: editing,
+          // Start owns tap/hold recognition. Leaving these null keeps the
+          // package's touch-position tilt out of edit entry, which is flat in
+          // the native Start recordings.
+          onUnpin: editing
+              ? () {
+                  onEditingChanged(null);
+                  unawaited(controller.unpinApp(tile.packageName));
+                }
+              : null,
+          onResize: editing
+              ? () {
+                  onEditingChanged(null);
+                  unawaited(controller.cycleTileSize(tile.packageName));
+                }
+              : null,
+          child: _TileBody(
+            controller: controller,
+            app: app,
+            tile: tile,
+            live: live,
+          ),
+        ),
       ),
     );
   }
@@ -558,11 +925,17 @@ class _TileBody extends StatelessWidget {
       TileSize.medium => 64.0,
       TileSize.wide => 64.0,
     };
-    final icon = LauncherIcon(
-      controller: controller,
+    final role = startRoleFor(
       packageName: app.packageName,
-      size: iconSize,
+      label: app.label,
     );
+    final icon = role == null
+        ? LauncherIcon(
+            controller: controller,
+            packageName: app.packageName,
+            size: iconSize,
+          )
+        : StartRoleIcon(packageName: role);
     if (tile.size != TileSize.wide || live == null) {
       return Center(child: icon);
     }
@@ -603,6 +976,7 @@ class _TileBody extends StatelessWidget {
       ),
     );
   }
+
 }
 
 class _SetupPanel extends StatelessWidget {
@@ -994,17 +1368,24 @@ class _AppRow extends StatelessWidget {
         behavior: HitTestBehavior.translucent,
         onLongPress: onLongPress,
         child: WpAppListRow(
-          icon: LauncherIcon(
-            controller: controller,
-            packageName: app.packageName,
-            size: 42,
-          ),
+          icon: _appIcon(app),
           label: app.label,
           semanticLabel: pinned ? '${app.label}, pinned' : app.label,
           onTap: onTap,
         ),
       ),
     );
+  }
+
+  Widget _appIcon(InstalledApp app) {
+    final role = startRoleFor(packageName: app.packageName, label: app.label);
+    return role == null
+        ? LauncherIcon(
+            controller: controller,
+            packageName: app.packageName,
+            size: 42,
+          )
+        : StartRoleIcon(packageName: role);
   }
 }
 
@@ -1031,14 +1412,11 @@ class _AppListLeadingAction extends StatelessWidget {
         onTap: onPressed,
         excludeFromSemantics: true,
         customBorder: const CircleBorder(),
-        child: Icon(
-          searching ? Icons.close : Icons.search,
-          size: 28,
-          color: Colors.white,
-        ),
+        child: StartSearchIcon(close: searching),
       ),
     ),
   );
+
 }
 
 enum _AppListEntryKind { search, header, app }
