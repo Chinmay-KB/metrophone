@@ -11,8 +11,10 @@ import 'package:metrophone/src/models/installed_app.dart';
 import 'package:metrophone/src/models/launcher_capabilities.dart';
 import 'package:metrophone/src/models/pinned_tile.dart';
 import 'package:metrophone/src/storage/memory_tile_store.dart';
+import 'package:wp_pivot_flutter/wp_components.dart';
 
 import 'support/fake_launcher_platform.dart';
+import 'support/wp_font_loader.dart';
 
 void main() {
   const outputPath = String.fromEnvironment('OUTPUT');
@@ -27,6 +29,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.runAsync(loadWpPivotFonts);
     final platform = FakeLauncherPlatform()
       ..installedApps = _apps
       ..launchSucceeds = false
@@ -50,7 +53,8 @@ void main() {
         child: MetrophoneApp(controller: controller, disposeController: false),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 360));
     var frame = 0;
     Future<void> capture(String scenario) async {
       await tester.runAsync(() async {
@@ -67,15 +71,15 @@ void main() {
     }
 
     final phone = find.byKey(const ValueKey('tile-phone'));
-    await capture('launch-exit');
+    await capture('start-rest');
     await tester.tap(phone);
     for (var index = 0; index < 10; index++) {
       await tester.pump(const Duration(milliseconds: 28));
       await capture('launch-exit');
     }
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 360));
 
-    await tester.longPress(phone);
+    await tester.longPress(phone, warnIfMissed: false);
     for (var index = 0; index < 7; index++) {
       await tester.pump(const Duration(milliseconds: 28));
       await capture('edit-entry');
@@ -95,7 +99,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 260));
 
     final selected = find.byKey(const ValueKey('tile-phone'));
-    await tester.longPress(selected);
+    // The selected tile has an active edit transform; Flutter's semantic bounds
+    // lag that transform by one frame, while the gesture still reaches it.
+    await tester.longPress(selected, warnIfMissed: false);
     await tester.pump();
     final resize = find.byKey(const ValueKey('wp-tile-edit-visual-resize'));
     if (resize.evaluate().isNotEmpty) await tester.tap(resize.first);
@@ -103,24 +109,37 @@ void main() {
       await tester.pump(const Duration(milliseconds: 28));
       await capture('resize-reflow');
     }
+    await tester.fling(
+      find.byType(WpSplitSurfaceView),
+      const Offset(-480, 0),
+      1200,
+    );
+    for (var index = 0; index < 8; index++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await capture('app-list-rest');
     File('${output.path}/frames.json').writeAsStringSync(
       jsonEncode({
         'viewport': [480, 800],
         'frame_interval_ms': 28,
         'frame_count': frame,
         'scenarios': [
+          'start-rest',
           'launch-exit',
           'edit-entry',
           'edit-wiggle',
           'live-reorder',
           'resize-reflow',
+          'app-list-rest',
         ],
         'scenario_frame_intervals_ms': {
+          'start-rest': 0,
           'launch-exit': 28,
           'edit-entry': 28,
           'edit-wiggle': 50,
           'live-reorder': 24,
           'resize-reflow': 28,
+          'app-list-rest': 0,
         },
       }),
     );
@@ -131,7 +150,7 @@ const _apps = [
   InstalledApp(
     packageName: 'phone',
     activityName: 'phone.Main',
-    label: 'Phone',
+    label: 'Fake GSM Network',
     isSystemApp: true,
   ),
   InstalledApp(
@@ -143,7 +162,7 @@ const _apps = [
   InstalledApp(
     packageName: 'browser',
     activityName: 'browser.Main',
-    label: 'Browser',
+    label: 'Internet Explorer',
     isSystemApp: true,
   ),
   InstalledApp(
@@ -153,9 +172,57 @@ const _apps = [
     isSystemApp: true,
   ),
   InstalledApp(
+    packageName: 'store',
+    activityName: 'store.Main',
+    label: 'Store',
+    isSystemApp: true,
+  ),
+  InstalledApp(
     packageName: 'people',
     activityName: 'people.Main',
     label: 'People',
+    isSystemApp: true,
+  ),
+  InstalledApp(
+    packageName: 'kids-corner',
+    activityName: 'kidsCorner.Main',
+    label: "Kid's Corner",
+    isSystemApp: true,
+  ),
+  InstalledApp(
+    packageName: 'alarms',
+    activityName: 'alarms.Main',
+    label: 'Alarms',
+    isSystemApp: true,
+  ),
+  InstalledApp(
+    packageName: 'battery-saver',
+    activityName: 'battery.Main',
+    label: 'Battery Saver',
+    isSystemApp: true,
+  ),
+  InstalledApp(
+    packageName: 'calculator',
+    activityName: 'calculator.Main',
+    label: 'Calculator',
+    isSystemApp: true,
+  ),
+  InstalledApp(
+    packageName: 'calendar',
+    activityName: 'calendar.Main',
+    label: 'Calendar',
+    isSystemApp: true,
+  ),
+  InstalledApp(
+    packageName: 'camera',
+    activityName: 'camera.Main',
+    label: 'Camera',
+    isSystemApp: true,
+  ),
+  InstalledApp(
+    packageName: 'cortana',
+    activityName: 'cortana.Main',
+    label: 'Cortana',
     isSystemApp: true,
   ),
 ];
@@ -164,5 +231,7 @@ const _tiles = [
   PinnedTile(packageName: 'messaging', size: TileSize.small, liveEnabled: true),
   PinnedTile(packageName: 'browser', size: TileSize.small, liveEnabled: true),
   PinnedTile(packageName: 'mail', size: TileSize.small, liveEnabled: true),
+  PinnedTile(packageName: 'store', size: TileSize.small, liveEnabled: true),
   PinnedTile(packageName: 'people', size: TileSize.medium, liveEnabled: true),
+  PinnedTile(packageName: 'kids-corner', size: TileSize.wide, liveEnabled: true),
 ];

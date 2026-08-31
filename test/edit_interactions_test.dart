@@ -8,11 +8,28 @@ import 'package:metrophone/src/models/installed_app.dart';
 import 'package:metrophone/src/models/pinned_tile.dart';
 import 'package:metrophone/src/storage/memory_tile_store.dart';
 import 'package:metrophone/src/ui/launcher_icon.dart';
+import 'package:metrophone/src/ui/start_role_icon.dart';
 import 'package:wp_pivot_flutter/wp_components.dart';
 
 import 'support/fake_launcher_platform.dart';
 
 void main() {
+  test('known launcher roles use source-aligned glyphs and preserve unknown apps', () {
+    expect(startRoleFor(packageName: 'phone', label: 'Fake GSM Network'), 'phone');
+    expect(
+      startRoleFor(packageName: 'com.android.chrome', label: 'Chrome'),
+      'browser',
+    );
+    expect(
+      startRoleFor(packageName: 'com.android.calculator2', label: 'Calculator'),
+      'calculator',
+    );
+    expect(
+      startRoleFor(packageName: 'org.example.field-notes', label: 'Field Notes'),
+      isNull,
+    );
+  });
+
   test(
     'first run persists a small deterministic installed default set',
     () async {

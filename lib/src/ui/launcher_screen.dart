@@ -19,6 +19,7 @@ import '../models/notification_snapshot.dart';
 import '../models/pinned_tile.dart';
 import 'launcher_icon.dart';
 import 'launcher_tile_layout.dart';
+import 'start_role_icon.dart';
 
 const _accent = Color(0xff3e65ff);
 const _referenceWidth = 480.0;
@@ -924,11 +925,17 @@ class _TileBody extends StatelessWidget {
       TileSize.medium => 64.0,
       TileSize.wide => 64.0,
     };
-    final icon = LauncherIcon(
-      controller: controller,
+    final role = startRoleFor(
       packageName: app.packageName,
-      size: iconSize,
+      label: app.label,
     );
+    final icon = role == null
+        ? LauncherIcon(
+            controller: controller,
+            packageName: app.packageName,
+            size: iconSize,
+          )
+        : StartRoleIcon(packageName: role);
     if (tile.size != TileSize.wide || live == null) {
       return Center(child: icon);
     }
@@ -969,6 +976,7 @@ class _TileBody extends StatelessWidget {
       ),
     );
   }
+
 }
 
 class _SetupPanel extends StatelessWidget {
@@ -1360,17 +1368,24 @@ class _AppRow extends StatelessWidget {
         behavior: HitTestBehavior.translucent,
         onLongPress: onLongPress,
         child: WpAppListRow(
-          icon: LauncherIcon(
-            controller: controller,
-            packageName: app.packageName,
-            size: 42,
-          ),
+          icon: _appIcon(app),
           label: app.label,
           semanticLabel: pinned ? '${app.label}, pinned' : app.label,
           onTap: onTap,
         ),
       ),
     );
+  }
+
+  Widget _appIcon(InstalledApp app) {
+    final role = startRoleFor(packageName: app.packageName, label: app.label);
+    return role == null
+        ? LauncherIcon(
+            controller: controller,
+            packageName: app.packageName,
+            size: 42,
+          )
+        : StartRoleIcon(packageName: role);
   }
 }
 
@@ -1397,14 +1412,11 @@ class _AppListLeadingAction extends StatelessWidget {
         onTap: onPressed,
         excludeFromSemantics: true,
         customBorder: const CircleBorder(),
-        child: Icon(
-          searching ? Icons.close : Icons.search,
-          size: 28,
-          color: Colors.white,
-        ),
+        child: StartSearchIcon(close: searching),
       ),
     ),
   );
+
 }
 
 enum _AppListEntryKind { search, header, app }

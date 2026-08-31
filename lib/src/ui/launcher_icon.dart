@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../controller/launcher_controller.dart';
 import '../models/app_icon.dart';
+import 'start_role_icon.dart';
 
 class LauncherIcon extends StatefulWidget {
   const LauncherIcon({
@@ -115,7 +116,7 @@ class _LauncherIconState extends State<LauncherIcon> {
         painter: _VisibleIconPainter(icon),
       );
     }
-    if (_error != null) return const Icon(Icons.apps);
+    if (_error != null) return StartRoleIcon(packageName: widget.packageName);
     return const Padding(
       padding: EdgeInsets.all(12),
       child: CircularProgressIndicator(strokeWidth: 1.5),
