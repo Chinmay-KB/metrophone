@@ -286,6 +286,15 @@ void main() {
             .scale,
         0.92,
       );
+      final wiggle = find.byKey(
+        const ValueKey('tile-edit-wiggle-offset-messaging'),
+      );
+      final firstWiggle = tester.widget<Transform>(wiggle).transform.storage;
+      final firstWiggleOffset = Offset(firstWiggle[12], firstWiggle[13]);
+      await tester.pump(const Duration(milliseconds: 260));
+      final nextWiggle = tester.widget<Transform>(wiggle).transform.storage;
+      final nextWiggleOffset = Offset(nextWiggle[12], nextWiggle[13]);
+      expect((nextWiggleOffset - firstWiggleOffset).distance, greaterThan(0.1));
 
       final before = tester
           .widget<AnimatedPositioned>(
@@ -303,7 +312,29 @@ void main() {
             .left,
         before,
       );
-      await gesture.moveBy(const Offset(180, 190));
+      await gesture.moveBy(const Offset(20, 0));
+      await tester.pump(const Duration(milliseconds: 40));
+      final partial = tester
+          .widget<AnimatedPositioned>(
+            find.byKey(const ValueKey('tile-position-messaging')),
+          )
+          .left;
+      expect(partial, lessThan(before!));
+      expect(partial, greaterThan(24));
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 260));
+      expect(controller.tiles.first.packageName, 'phone');
+      expect(
+        tester
+            .widget<AnimatedPositioned>(
+              find.byKey(const ValueKey('tile-position-messaging')),
+            )
+            .left,
+        before,
+      );
+
+      final commitGesture = await tester.startGesture(tester.getCenter(phone));
+      await commitGesture.moveBy(const Offset(190, 190));
       await tester.pump(const Duration(milliseconds: 80));
       final during = tester
           .widget<AnimatedPositioned>(
@@ -315,8 +346,8 @@ void main() {
         find.byKey(const ValueKey('start-tile-stack')),
       );
       expect(stack.children.last.key, const ValueKey('tile-position-phone'));
-      await gesture.up();
-      await tester.pumpAndSettle();
+      await commitGesture.up();
+      await tester.pump(const Duration(milliseconds: 260));
 
       await tester.longPress(find.byKey(const ValueKey('tile-phone')));
       await tester.pump();
@@ -360,6 +391,10 @@ void main() {
           )
           .duration,
       Duration.zero,
+    );
+    expect(
+      find.byKey(const ValueKey('tile-edit-wiggle-offset-messaging')),
+      findsNothing,
     );
   });
 }

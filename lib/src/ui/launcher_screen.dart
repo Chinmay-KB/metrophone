@@ -425,7 +425,8 @@ class _AnimatedStartTileGrid extends StatefulWidget {
   State<_AnimatedStartTileGrid> createState() => _AnimatedStartTileGridState();
 }
 
-class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid> {
+class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
+    with SingleTickerProviderStateMixin {
   // A quarter of a small 99px tile is enough physical overlap to communicate
   // intent while rejecting accidental 1--2px pointer tremor (and is twice the
   // measured 12px Start gutter).
@@ -434,16 +435,55 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid> {
   String? _draggingPackage;
   Offset _dragDelta = Offset.zero;
   Offset? _dragStart;
+  double _reflowProgress = 0;
+  bool _previewCanCommit = false;
+  bool _motionReduced = false;
+  late final AnimationController _ambientController;
+
+  @override
+  void initState() {
+    super.initState();
+    _ambientController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3200),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _motionReduced = MediaQuery.disableAnimationsOf(context);
+    _syncAmbientMotion();
+  }
 
   @override
   void didUpdateWidget(covariant _AnimatedStartTileGrid oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _syncAmbientMotion();
     if (widget.editingPackage == null && oldWidget.editingPackage != null) {
       _draggingPackage = null;
       _dragStart = null;
       _dragDelta = Offset.zero;
       _previewTiles = null;
+      _reflowProgress = 0;
+      _previewCanCommit = false;
     }
+  }
+
+  void _syncAmbientMotion() {
+    if (widget.editingPackage != null && !_motionReduced) {
+      if (!_ambientController.isAnimating) _ambientController.repeat();
+    } else {
+      _ambientController
+        ..stop()
+        ..value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ambientController.dispose();
+    super.dispose();
   }
 
   void _startDrag(String packageName, PointerDownEvent event) {
@@ -452,6 +492,9 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid> {
       _draggingPackage = packageName;
       _dragStart = event.position;
       _dragDelta = Offset.zero;
+      _previewTiles = null;
+      _reflowProgress = 0;
+      _previewCanCommit = false;
     });
   }
 
@@ -469,19 +512,21 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid> {
     );
     LauncherTileSlot? target;
     var largestOverlap = 0.0;
+    var largestOverlapFraction = 0.0;
     for (final slot in candidates) {
       final candidateRect = _slotRect(slot);
       final overlap = movingRect.intersect(candidateRect);
       final overlapArea =
           (math.max(0, overlap.width) * math.max(0, overlap.height)).toDouble();
-      final threshold =
-          math.min(
-            movingRect.width * movingRect.height,
-            candidateRect.width * candidateRect.height,
-          ) *
-          _activationOverlapFraction;
-      if (overlapArea >= threshold && overlapArea > largestOverlap) {
+      final comparisonArea = math.min(
+        movingRect.width * movingRect.height,
+        candidateRect.width * candidateRect.height,
+      );
+      if (overlapArea > largestOverlap) {
         largestOverlap = overlapArea;
+        largestOverlapFraction = comparisonArea == 0
+            ? 0
+            : overlapArea / comparisonArea;
         target = slot;
       }
     }
@@ -489,13 +534,16 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid> {
     final oldIndex = preview.indexWhere(
       (tile) => tile.packageName == packageName,
     );
-    if (target != null && oldIndex >= 0) {
+    if (target != null && largestOverlap > 0 && oldIndex >= 0) {
       final moving = preview.removeAt(oldIndex);
       preview.insert(target.index.clamp(0, preview.length), moving);
     }
     setState(() {
       _dragDelta = delta;
-      _previewTiles = preview;
+      _previewTiles = target == null || largestOverlap == 0 ? null : preview;
+      _reflowProgress = (largestOverlapFraction / _activationOverlapFraction)
+          .clamp(0.0, 1.0);
+      _previewCanCommit = largestOverlapFraction >= _activationOverlapFraction;
     });
   }
 
@@ -508,19 +556,41 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid> {
   void _endDrag(String packageName) {
     if (_draggingPackage != packageName) return;
     final preview = _previewTiles;
+    final shouldCommit = _previewCanCommit;
     final oldIndex = widget.controller.tiles.indexWhere(
       (tile) => tile.packageName == packageName,
     );
-    final newIndex =
-        preview?.indexWhere((tile) => tile.packageName == packageName) ??
-        oldIndex;
+    final newIndex = shouldCommit
+        ? preview?.indexWhere((tile) => tile.packageName == packageName) ??
+              oldIndex
+        : oldIndex;
     setState(() {
       _draggingPackage = null;
       _dragStart = null;
       _dragDelta = Offset.zero;
+      _previewCanCommit = false;
+      if (shouldCommit) {
+        _reflowProgress = 1;
+      } else {
+        _previewTiles = null;
+        _reflowProgress = 0;
+      }
     });
     if (oldIndex >= 0 && newIndex >= 0 && oldIndex != newIndex) {
-      unawaited(widget.controller.reorderTileTo(oldIndex, newIndex));
+      unawaited(
+        widget.controller.reorderTileTo(oldIndex, newIndex).whenComplete(() {
+          if (!mounted) return;
+          setState(() {
+            _previewTiles = null;
+            _reflowProgress = 0;
+          });
+        }),
+      );
+    } else if (shouldCommit) {
+      setState(() {
+        _previewTiles = null;
+        _reflowProgress = 0;
+      });
     }
   }
 
@@ -530,10 +600,15 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid> {
     final tiles = _previewTiles ?? widget.controller.tiles;
     final slots = packLauncherTiles(tiles);
     final originalSlots = packLauncherTiles(widget.controller.tiles);
-    final lastRow = slots.fold<int>(
+    final previewLastRow = slots.fold<int>(
       0,
       (value, slot) => math.max(value, slot.row + slot.rowSpan),
     );
+    final originalLastRow = originalSlots.fold<int>(
+      0,
+      (value, slot) => math.max(value, slot.row + slot.rowSpan),
+    );
+    final lastRow = math.max(previewLastRow, originalLastRow);
     final maxExitOrder = slots.fold<double>(
       0,
       (value, slot) => math.max(value, _StartSurfaceState._exitOrder(slot)),
@@ -590,69 +665,109 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid> {
   ) {
     final packageName = slot.tile.packageName;
     final dragging = packageName == _draggingPackage;
-    final positioned = dragging
-        ? originalSlots.firstWhere(
-            (item) => item.tile.packageName == packageName,
-          )
-        : slot;
+    final origin = originalSlots.firstWhere(
+      (item) => item.tile.packageName == packageName,
+    );
+    final positioned = dragging ? origin : slot;
     final isSelected = widget.editingPackage == packageName;
     final inEdit = widget.editingPackage != null;
     final width =
         (positioned.columnSpan * 99 + (positioned.columnSpan - 1) * 12) * scale;
     final height =
         (positioned.rowSpan * 99 + (positioned.rowSpan - 1) * 12) * scale;
-    return AnimatedPositioned(
-      key: ValueKey('tile-position-$packageName'),
-      duration: reducedMotion || dragging
-          ? Duration.zero
-          : const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-      left:
-          (24 + positioned.column * 111) * scale +
-          (dragging ? _dragDelta.dx * scale : 0),
-      top:
-          positioned.row * 111 * scale + (dragging ? _dragDelta.dy * scale : 0),
-      width: width,
-      height: height,
-      child: Listener(
-        onPointerDown: (event) => _startDrag(packageName, event),
-        onPointerMove: (event) => _updateDrag(packageName, event, scale),
-        onPointerUp: (_) => _endDrag(packageName),
-        onPointerCancel: (_) => _endDrag(packageName),
-        child: AnimatedScale(
-          key: ValueKey('tile-edit-scale-$packageName'),
+    final column = dragging
+        ? origin.column.toDouble()
+        : _lerp(
+            origin.column.toDouble(),
+            slot.column.toDouble(),
+            _reflowProgress,
+          );
+    final row = dragging
+        ? origin.row.toDouble()
+        : _lerp(origin.row.toDouble(), slot.row.toDouble(), _reflowProgress);
+    Widget tile = Listener(
+      onPointerDown: (event) => _startDrag(packageName, event),
+      onPointerMove: (event) => _updateDrag(packageName, event, scale),
+      onPointerUp: (_) => _endDrag(packageName),
+      onPointerCancel: (_) => _endDrag(packageName),
+      child: AnimatedScale(
+        key: ValueKey('tile-edit-scale-$packageName'),
+        duration: reducedMotion
+            ? Duration.zero
+            : const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        scale: inEdit ? (isSelected ? 1.06 : 0.92) : 1,
+        child: AnimatedOpacity(
+          key: ValueKey('tile-edit-opacity-$packageName'),
           duration: reducedMotion
               ? Duration.zero
-              : const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          scale: inEdit ? (isSelected ? 1.06 : 0.92) : 1,
-          child: AnimatedOpacity(
-            key: ValueKey('tile-edit-opacity-$packageName'),
-            duration: reducedMotion
-                ? Duration.zero
-                : const Duration(milliseconds: 160),
-            opacity: inEdit && !isSelected ? 0.72 : 1,
-            child: WpStaggeredSceneTransition(
-              animation: widget.sceneAnimation,
-              direction: widget.sceneDirection,
-              order: _StartSurfaceState._exitOrder(slot),
-              maxOrder: maxExitOrder,
-              entryOrder: _StartSurfaceState._entryOrder(slot),
-              maxEntryOrder: maxEntryOrder,
-              alignment: Alignment.centerLeft,
-              child: _LauncherTile(
-                controller: widget.controller,
-                slot: slot,
-                editMode: inEdit,
-                editing: isSelected,
-                onEditingChanged: widget.onEditingChanged,
-                onLaunch: widget.onLaunch,
-              ),
+              : const Duration(milliseconds: 160),
+          opacity: inEdit && !isSelected ? 0.72 : 1,
+          child: WpStaggeredSceneTransition(
+            animation: widget.sceneAnimation,
+            direction: widget.sceneDirection,
+            order: _StartSurfaceState._exitOrder(slot),
+            maxOrder: maxExitOrder,
+            entryOrder: _StartSurfaceState._entryOrder(slot),
+            maxEntryOrder: maxEntryOrder,
+            alignment: Alignment.centerLeft,
+            child: _LauncherTile(
+              controller: widget.controller,
+              slot: slot,
+              editMode: inEdit,
+              editing: isSelected,
+              onEditingChanged: widget.onEditingChanged,
+              onLaunch: widget.onLaunch,
             ),
           ),
         ),
       ),
     );
+    if (inEdit && !isSelected && !reducedMotion) {
+      final phase = _ambientPhase(packageName);
+      tile = AnimatedBuilder(
+        key: ValueKey('tile-edit-wiggle-$packageName'),
+        animation: _ambientController,
+        child: tile,
+        builder: (context, child) {
+          final time = _ambientController.value * math.pi * 2;
+          final offset = Offset(
+            math.sin(time + phase) * 1.4 * scale,
+            math.sin(time * 0.79 + phase * 1.7) * 1.1 * scale,
+          );
+          final angle = math.sin(time * 1.13 + phase * 0.6) * 0.0035;
+          return Transform.translate(
+            key: ValueKey('tile-edit-wiggle-offset-$packageName'),
+            offset: offset,
+            child: Transform.rotate(angle: angle, child: child),
+          );
+        },
+      );
+    }
+    return AnimatedPositioned(
+      key: ValueKey('tile-position-$packageName'),
+      duration: reducedMotion || _draggingPackage != null
+          ? Duration.zero
+          : const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      left:
+          (24 + column * 111) * scale + (dragging ? _dragDelta.dx * scale : 0),
+      top: row * 111 * scale + (dragging ? _dragDelta.dy * scale : 0),
+      width: width,
+      height: height,
+      child: tile,
+    );
+  }
+
+  static double _lerp(double start, double end, double progress) =>
+      start + (end - start) * progress;
+
+  static double _ambientPhase(String packageName) {
+    var seed = 0;
+    for (final codeUnit in packageName.codeUnits) {
+      seed = (seed * 31 + codeUnit) & 0x7fffffff;
+    }
+    return (seed % 360) / 360 * math.pi * 2;
   }
 }
 

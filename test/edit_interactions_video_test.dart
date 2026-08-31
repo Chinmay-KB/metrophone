@@ -16,7 +16,9 @@ import 'support/fake_launcher_platform.dart';
 
 void main() {
   const outputPath = String.fromEnvironment('OUTPUT');
-  testWidgets('renders shipping launcher interaction demonstration', (tester) async {
+  testWidgets('renders shipping launcher interaction demonstration', (
+    tester,
+  ) async {
     if (outputPath.isEmpty) return;
     final output = Directory(outputPath);
     if (output.existsSync()) throw StateError('OUTPUT must be fresh');
@@ -29,8 +31,11 @@ void main() {
       ..installedApps = _apps
       ..launchSucceeds = false
       ..currentCapabilities = const LauncherCapabilities(
-        sdkInt: 35, isDefaultLauncher: true, canRequestHomeRole: true,
-        hasNotificationAccess: true, supportsNativeMonochromeIcons: true,
+        sdkInt: 35,
+        isDefaultLauncher: true,
+        canRequestHomeRole: true,
+        hasNotificationAccess: true,
+        supportsNativeMonochromeIcons: true,
       );
     final controller = LauncherController(
       platform: platform,
@@ -39,15 +44,19 @@ void main() {
     addTearDown(controller.dispose);
     addTearDown(platform.close);
     final boundary = GlobalKey();
-    await tester.pumpWidget(RepaintBoundary(
-      key: boundary,
-      child: MetrophoneApp(controller: controller, disposeController: false),
-    ));
+    await tester.pumpWidget(
+      RepaintBoundary(
+        key: boundary,
+        child: MetrophoneApp(controller: controller, disposeController: false),
+      ),
+    );
     await tester.pumpAndSettle();
     var frame = 0;
     Future<void> capture(String scenario) async {
       await tester.runAsync(() async {
-        final render = boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+        final render =
+            boundary.currentContext!.findRenderObject()!
+                as RenderRepaintBoundary;
         final image = await render.toImage(pixelRatio: 1);
         final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
         File('${output.path}/${frame.toString().padLeft(3, '0')}-$scenario.png')
@@ -71,6 +80,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 28));
       await capture('edit-entry');
     }
+    for (var index = 0; index < 24; index++) {
+      await tester.pump(const Duration(milliseconds: 50));
+      await capture('edit-wiggle');
+    }
 
     final gesture = await tester.startGesture(tester.getCenter(phone));
     for (var index = 0; index < 7; index++) {
@@ -79,7 +92,7 @@ void main() {
       await capture('live-reorder');
     }
     await gesture.up();
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 260));
 
     final selected = find.byKey(const ValueKey('tile-phone'));
     await tester.longPress(selected);
@@ -90,21 +103,61 @@ void main() {
       await tester.pump(const Duration(milliseconds: 28));
       await capture('resize-reflow');
     }
-    File('${output.path}/frames.json').writeAsStringSync(jsonEncode({
-      'viewport': [480, 800],
-      'frame_interval_ms': 28,
-      'frame_count': frame,
-      'scenarios': ['launch-exit', 'edit-entry', 'live-reorder', 'resize-reflow'],
-    }));
+    File('${output.path}/frames.json').writeAsStringSync(
+      jsonEncode({
+        'viewport': [480, 800],
+        'frame_interval_ms': 28,
+        'frame_count': frame,
+        'scenarios': [
+          'launch-exit',
+          'edit-entry',
+          'edit-wiggle',
+          'live-reorder',
+          'resize-reflow',
+        ],
+        'scenario_frame_intervals_ms': {
+          'launch-exit': 28,
+          'edit-entry': 28,
+          'edit-wiggle': 50,
+          'live-reorder': 24,
+          'resize-reflow': 28,
+        },
+      }),
+    );
   }, skip: outputPath.isEmpty);
 }
 
 const _apps = [
-  InstalledApp(packageName: 'phone', activityName: 'phone.Main', label: 'Phone', isSystemApp: true),
-  InstalledApp(packageName: 'messaging', activityName: 'messaging.Main', label: 'Messaging', isSystemApp: true),
-  InstalledApp(packageName: 'browser', activityName: 'browser.Main', label: 'Browser', isSystemApp: true),
-  InstalledApp(packageName: 'mail', activityName: 'mail.Main', label: 'Mail', isSystemApp: true),
-  InstalledApp(packageName: 'people', activityName: 'people.Main', label: 'People', isSystemApp: true),
+  InstalledApp(
+    packageName: 'phone',
+    activityName: 'phone.Main',
+    label: 'Phone',
+    isSystemApp: true,
+  ),
+  InstalledApp(
+    packageName: 'messaging',
+    activityName: 'messaging.Main',
+    label: 'Messaging',
+    isSystemApp: true,
+  ),
+  InstalledApp(
+    packageName: 'browser',
+    activityName: 'browser.Main',
+    label: 'Browser',
+    isSystemApp: true,
+  ),
+  InstalledApp(
+    packageName: 'mail',
+    activityName: 'mail.Main',
+    label: 'Mail',
+    isSystemApp: true,
+  ),
+  InstalledApp(
+    packageName: 'people',
+    activityName: 'people.Main',
+    label: 'People',
+    isSystemApp: true,
+  ),
 ];
 const _tiles = [
   PinnedTile(packageName: 'phone', size: TileSize.medium, liveEnabled: true),
