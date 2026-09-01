@@ -56,15 +56,27 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 360));
     var frame = 0;
-    Future<void> capture(String scenario) async {
+    List<int>? settledSelectionFrame;
+    Future<void> capture(
+      String scenario, {
+      bool verifySettledSelectionContinuity = false,
+    }) async {
       await tester.runAsync(() async {
         final render =
             boundary.currentContext!.findRenderObject()!
                 as RenderRepaintBoundary;
         final image = await render.toImage(pixelRatio: 1);
         final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+        final pngBytes = List<int>.from(bytes!.buffer.asUint8List());
+        if (verifySettledSelectionContinuity) {
+          if (settledSelectionFrame == null) {
+            settledSelectionFrame = pngBytes;
+          } else {
+            expect(pngBytes, orderedEquals(settledSelectionFrame!));
+          }
+        }
         File('${output.path}/${frame.toString().padLeft(3, '0')}-$scenario.png')
-            .writeAsBytesSync(bytes!.buffer.asUint8List());
+            .writeAsBytesSync(pngBytes);
         image.dispose();
         frame++;
       });
@@ -118,6 +130,40 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
     await capture('app-list-rest');
+
+    for (var index = 0; index < 4; index++) {
+      await tester.pump(const Duration(milliseconds: 80));
+      await capture('app-list-before-alphabet');
+    }
+    await tester.tap(
+      find.byKey(const ValueKey('wp-app-list-header-frame')).first,
+    );
+    await tester.pump();
+    for (var index = 0; index < 16; index++) {
+      await tester.pump(const Duration(milliseconds: 28));
+      await capture('alphabet-open');
+    }
+    await tester.tap(find.byKey(const ValueKey('wp-alphabet-cell-c')));
+    await tester.pump();
+    for (var index = 0; index < 18; index++) {
+      await tester.pump(const Duration(milliseconds: 28));
+      await capture('alphabet-select');
+    }
+    // Selection holds the catalog black until its new controller has completed
+    // the post-dismiss correction. Flush its post-frame correction before
+    // documenting the final state.
+    await tester.pump();
+    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(find.text('Alarms').hitTestable(), findsNothing);
+    expect(find.text('Calculator').hitTestable(), findsOneWidget);
+    for (var index = 0; index < 4; index++) {
+      await tester.pump(const Duration(milliseconds: 80));
+      await capture(
+        'app-list-after-selection',
+        verifySettledSelectionContinuity: true,
+      );
+    }
     File('${output.path}/frames.json').writeAsStringSync(
       jsonEncode({
         'viewport': [480, 800],
@@ -131,6 +177,10 @@ void main() {
           'live-reorder',
           'resize-reflow',
           'app-list-rest',
+          'app-list-before-alphabet',
+          'alphabet-open',
+          'alphabet-select',
+          'app-list-after-selection',
         ],
         'scenario_frame_intervals_ms': {
           'start-rest': 0,
@@ -140,6 +190,10 @@ void main() {
           'live-reorder': 24,
           'resize-reflow': 28,
           'app-list-rest': 0,
+          'app-list-before-alphabet': 80,
+          'alphabet-open': 28,
+          'alphabet-select': 28,
+          'app-list-after-selection': 80,
         },
       }),
     );
@@ -233,5 +287,9 @@ const _tiles = [
   PinnedTile(packageName: 'mail', size: TileSize.small, liveEnabled: true),
   PinnedTile(packageName: 'store', size: TileSize.small, liveEnabled: true),
   PinnedTile(packageName: 'people', size: TileSize.medium, liveEnabled: true),
-  PinnedTile(packageName: 'kids-corner', size: TileSize.wide, liveEnabled: true),
+  PinnedTile(
+    packageName: 'kids-corner',
+    size: TileSize.wide,
+    liveEnabled: true,
+  ),
 ];
