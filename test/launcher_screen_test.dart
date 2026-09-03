@@ -22,6 +22,66 @@ const _apps = [
     label: 'Beta',
     isSystemApp: true,
   ),
+  InstalledApp(
+    packageName: 'example.charlie',
+    activityName: 'example.charlie.MainActivity',
+    label: 'Charlie',
+    isSystemApp: false,
+  ),
+  InstalledApp(
+    packageName: 'example.delta',
+    activityName: 'example.delta.MainActivity',
+    label: 'Delta',
+    isSystemApp: false,
+  ),
+  InstalledApp(
+    packageName: 'example.echo',
+    activityName: 'example.echo.MainActivity',
+    label: 'Echo',
+    isSystemApp: false,
+  ),
+  InstalledApp(
+    packageName: 'example.foxtrot',
+    activityName: 'example.foxtrot.MainActivity',
+    label: 'Foxtrot',
+    isSystemApp: false,
+  ),
+  InstalledApp(
+    packageName: 'example.golf',
+    activityName: 'example.golf.MainActivity',
+    label: 'Golf',
+    isSystemApp: false,
+  ),
+  InstalledApp(
+    packageName: 'example.hotel',
+    activityName: 'example.hotel.MainActivity',
+    label: 'Hotel',
+    isSystemApp: false,
+  ),
+  InstalledApp(
+    packageName: 'example.india',
+    activityName: 'example.india.MainActivity',
+    label: 'India',
+    isSystemApp: false,
+  ),
+  InstalledApp(
+    packageName: 'example.juliet',
+    activityName: 'example.juliet.MainActivity',
+    label: 'Juliet',
+    isSystemApp: false,
+  ),
+  InstalledApp(
+    packageName: 'example.kilo',
+    activityName: 'example.kilo.MainActivity',
+    label: 'Kilo',
+    isSystemApp: false,
+  ),
+  InstalledApp(
+    packageName: 'example.lima',
+    activityName: 'example.lima.MainActivity',
+    label: 'Lima',
+    isSystemApp: false,
+  ),
 ];
 
 void main() {
@@ -94,7 +154,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('app-list')), findsOneWidget);
     expect(find.byKey(const ValueKey('app-example.alpha')), findsOneWidget);
-    expect(find.byType(WpAppListHeader), findsNWidgets(2));
+    expect(find.byType(WpAppListHeader), findsAtLeastNWidgets(2));
     expect(
       tester.getTopLeft(
         find.byKey(const ValueKey('wp-app-list-header-frame')).first,
@@ -140,6 +200,52 @@ void main() {
     expect(
       tester.getSize(find.byKey(const ValueKey('wp-alphabet-cell-a'))),
       const Size.square(99),
+    );
+  });
+
+  testWidgets('alphabet picker clears and returns to the selected section', (
+    tester,
+  ) async {
+    await _setWvgaView(tester);
+    await tester.pumpWidget(
+      MetrophoneApp(controller: controller, disposeController: false),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(WpSplitSurfaceView), const Offset(-420, 0));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('wp-app-list-header-frame')).first,
+    );
+    await tester.pump();
+    expect(find.byType(WpAlphabetGrid), findsOneWidget);
+    expect(find.byKey(const ValueKey('app-list')), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 160));
+    expect(find.byKey(const ValueKey('app-list')), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 320));
+    await tester.tap(find.byKey(const ValueKey('wp-alphabet-cell-c')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byType(WpAlphabetGrid), findsOneWidget);
+
+    // The picker clears to black while its post-dismiss correction settles.
+    // The old A section must not be exposed at the reverse boundary, whether
+    // C is already visible or still waiting for its correction frame.
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(WpAlphabetGrid), findsNothing);
+    expect(find.text('Alpha').hitTestable(), findsNothing);
+    await tester.pumpAndSettle();
+    expect(find.text('Alpha').hitTestable(), findsNothing);
+    expect(find.text('Charlie').hitTestable(), findsOneWidget);
+    expect(find.byType(WpAlphabetGrid), findsNothing);
+    expect(find.byKey(const ValueKey('app-list')), findsOneWidget);
+    final listScroller = find.descendant(
+      of: find.byKey(const ValueKey('app-list')),
+      matching: find.byType(Scrollable),
+    );
+    expect(
+      tester.state<ScrollableState>(listScroller).position.pixels,
+      closeTo(4 * 74, 1),
     );
   });
 

@@ -925,10 +925,7 @@ class _TileBody extends StatelessWidget {
       TileSize.medium => 64.0,
       TileSize.wide => 64.0,
     };
-    final role = startRoleFor(
-      packageName: app.packageName,
-      label: app.label,
-    );
+    final role = startRoleFor(packageName: app.packageName, label: app.label);
     final icon = role == null
         ? LauncherIcon(
             controller: controller,
@@ -976,7 +973,6 @@ class _TileBody extends StatelessWidget {
       ),
     );
   }
-
 }
 
 class _SetupPanel extends StatelessWidget {
@@ -1055,17 +1051,33 @@ class _AppsSurface extends StatefulWidget {
   State<_AppsSurface> createState() => _AppsSurfaceState();
 }
 
-class _AppsSurfaceState extends State<_AppsSurface> {
-  final _scrollController = ScrollController();
+class _AppsSurfaceState extends State<_AppsSurface>
+    with SingleTickerProviderStateMixin {
+  late ScrollController _scrollController;
   final _searchController = TextEditingController();
+  late final AnimationController _alphabetController;
   Timer? _noticeTimer;
   bool _showAlphabet = false;
+  bool _alphabetClosing = false;
+  bool _holdingAppListForSelection = false;
   bool _searching = false;
   String? _notice;
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _alphabetController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 440),
+      reverseDuration: const Duration(milliseconds: 340),
+    );
+  }
+
+  @override
   void dispose() {
     _noticeTimer?.cancel();
+    _alphabetController.dispose();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -1113,7 +1125,7 @@ class _AppsSurfaceState extends State<_AppsSurface> {
 
   bool handleBack() {
     if (_showAlphabet) {
-      setState(() => _showAlphabet = false);
+      unawaited(_dismissAlphabet());
       return true;
     }
     if (_searching) {
@@ -1138,30 +1150,101 @@ class _AppsSurfaceState extends State<_AppsSurface> {
       _searching = false;
       _searchController.clear();
       _showAlphabet = true;
+      _alphabetClosing = false;
+      _holdingAppListForSelection = false;
+    });
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _alphabetController.value = 1;
+    } else {
+      _alphabetController.forward(from: 0);
+    }
+  }
+
+  Future<void> _dismissAlphabet() async {
+    if (!_showAlphabet || _alphabetClosing) return;
+    setState(() => _alphabetClosing = true);
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _alphabetController.value = 0;
+    } else {
+      await _alphabetController.reverse();
+    }
+    if (!mounted) return;
+    setState(() {
+      _showAlphabet = false;
+      _alphabetClosing = false;
     });
   }
 
-  void _jumpTo(String letter) {
-    setState(() => _showAlphabet = false);
+  Future<void> _jumpTo(String letter) async {
+    if (_alphabetClosing) return;
+    // Hold the catalog black through reverse and the dismissal rebuild. The
+    // selected destination is then applied before this held surface can be
+    // revealed, so the prior section never becomes a visible return frame.
+    setState(() => _holdingAppListForSelection = true);
+    final destinationOffset = _replaceScrollForLetter(letter);
+    await _dismissAlphabet();
+    if (!mounted) return;
+    if (destinationOffset == null) {
+      // A dynamically removed section cannot be selected through the grid,
+      // but do not strand the catalog behind its selection clearance if the
+      // app catalog changes between the tap and the dismissal.
+      setState(() => _holdingAppListForSelection = false);
+      return;
+    }
+    // WpSplitSurfaceView may restore the offset it owned before dismissal.
+    // Correct the fresh controller while the catalog is still black, then
+    // reveal only the selected section in the following build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollController.hasClients) return;
-      final entries = _entries();
-      final index = entries.indexWhere(
-        (entry) =>
-            entry.kind == _AppListEntryKind.header && entry.letter == letter,
-      );
-      if (index < 0) return;
-      final scale = MediaQuery.sizeOf(context).width / _referenceWidth;
-      unawaited(
-        _scrollController.animateTo(
-          index * _appListRowHeight * scale,
-          duration: MediaQuery.disableAnimationsOf(context)
-              ? Duration.zero
-              : const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-        ),
+      if (!mounted) return;
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(destinationOffset);
+      }
+      setState(() => _holdingAppListForSelection = false);
+    });
+  }
+
+  double? _replaceScrollForLetter(String letter) {
+    final entries = _entries();
+    final index = entries.indexWhere(
+      (entry) =>
+          entry.kind == _AppListEntryKind.header && entry.letter == letter,
+    );
+    if (index < 0) return null;
+    final scale = MediaQuery.sizeOf(context).width / _referenceWidth;
+    final destinationOffset = index * _appListRowHeight * scale;
+    final previousController = _scrollController;
+    setState(() {
+      _scrollController = ScrollController(
+        initialScrollOffset: destinationOffset,
       );
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      previousController.dispose();
+    });
+    return destinationOffset;
+  }
+
+  Widget _buildAppListTransition(Widget child) {
+    if (!_showAlphabet) return child;
+    final progress = _alphabetController.value;
+    // The native picker clears the catalog before the letter plane arrives,
+    // and lets the list return only after that plane has gone. Keeping this
+    // envelope symmetric also makes selection/back dismissal a clean
+    // reversal instead of exposing two independently moving letter surfaces.
+    final appOpacity =
+        (1 -
+                Curves.easeIn.transform(
+                  (progress / .18).clamp(0.0, 1.0).toDouble(),
+                ))
+            .clamp(0.0, 1.0)
+            .toDouble();
+    return Opacity(
+      opacity: appOpacity,
+      child: Transform.translate(
+        offset: Offset(-12 * (1 - appOpacity), 0),
+        child: child,
+      ),
+    );
   }
 
   void _togglePinned(InstalledApp app) {
@@ -1185,112 +1268,148 @@ class _AppsSurfaceState extends State<_AppsSurface> {
 
   @override
   Widget build(BuildContext context) {
-    if (_showAlphabet) {
-      return AnnotatedRegion<SystemUiOverlayStyle>(
-        value: const SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.light,
-          statusBarBrightness: Brightness.dark,
-        ),
-        child: ColoredBox(
-          color: Colors.black,
-          child: Padding(
-            padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
-            child: WpAlphabetGrid(
-              letters: _alphabetLetters,
-              enabledLetters: _enabledLetters,
-              onSelected: _jumpTo,
-              onCancel: () => setState(() => _showAlphabet = false),
-              cellBuilder: _buildAlphabetCell,
-            ),
-          ),
-        ),
-      );
-    }
-
     final entries = _entries();
     final maxOrder = math.min(8.0, math.max(0, entries.length - 1) * 0.35);
     final scale = MediaQuery.sizeOf(context).width / _referenceWidth;
-    return ColoredBox(
-      color: Colors.black,
-      child: Stack(
-        children: [
-          WpAppListView(
-            key: const ValueKey('app-list'),
-            controller: _scrollController,
-            referenceBottomPadding:
-                24 + MediaQuery.paddingOf(context).bottom / scale,
-            leadingAction: _AppListLeadingAction(
-              searching: _searching,
-              onPressed: _toggleSearch,
-            ),
-            children: [
-              for (var index = 0; index < entries.length; index++)
-                WpStaggeredSceneTransition(
-                  animation: widget.sceneAnimation,
-                  direction: widget.sceneDirection,
-                  order: math.min(8.0, index * 0.35),
-                  maxOrder: maxOrder,
-                  entryOrder: math.max(0, maxOrder - index * 0.35),
-                  maxEntryOrder: maxOrder,
-                  child: _buildEntry(entries[index]),
-                ),
-            ],
+    final appListSurface = Stack(
+      children: [
+        WpAppListView(
+          key: const ValueKey('app-list'),
+          controller: _scrollController,
+          referenceBottomPadding:
+              24 + MediaQuery.paddingOf(context).bottom / scale,
+          leadingAction: _AppListLeadingAction(
+            searching: _searching,
+            onPressed: _toggleSearch,
           ),
-          if (_searching)
-            Positioned(
-              left: _appListContentLeft * scale,
-              top: _appListFirstSlotTop * scale,
-              right: 24 * scale,
-              height: _appListRowHeight * scale,
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: SizedBox(
-                  height: _appListIconSize * scale,
-                  child: TextField(
-                    key: const ValueKey('app-search-field'),
-                    controller: _searchController,
-                    autofocus: true,
-                    onChanged: (_) => setState(() {}),
-                    style: TextStyle(fontSize: 25 * scale, color: Colors.white),
-                    cursorColor: _accent,
-                    decoration: const InputDecoration(
-                      hintText: 'search',
-                      hintStyle: TextStyle(color: Colors.white54),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: _accent, width: 2),
-                      ),
-                    ),
-                  ),
-                ),
+          children: [
+            for (var index = 0; index < entries.length; index++)
+              WpStaggeredSceneTransition(
+                animation: widget.sceneAnimation,
+                direction: widget.sceneDirection,
+                order: math.min(8.0, index * 0.35),
+                maxOrder: maxOrder,
+                entryOrder: math.max(0, maxOrder - index * 0.35),
+                maxEntryOrder: maxOrder,
+                child: _buildEntry(entries[index]),
               ),
-            ),
+          ],
+        ),
+        if (_searching)
           Positioned(
-            left: 24,
-            right: 24,
-            bottom: 24 + MediaQuery.paddingOf(context).bottom,
-            child: IgnorePointer(
-              ignoring: _notice == null,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 120),
-                opacity: _notice == null ? 0 : 1,
-                child: ColoredBox(
-                  color: Colors.black,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      _notice ?? '',
-                      style: const TextStyle(fontSize: 19, color: Colors.white),
+            left: _appListContentLeft * scale,
+            top: _appListFirstSlotTop * scale,
+            right: 24 * scale,
+            height: _appListRowHeight * scale,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                height: _appListIconSize * scale,
+                child: TextField(
+                  key: const ValueKey('app-search-field'),
+                  controller: _searchController,
+                  autofocus: true,
+                  onChanged: (_) => setState(() {}),
+                  style: TextStyle(fontSize: 25 * scale, color: Colors.white),
+                  cursorColor: _accent,
+                  decoration: const InputDecoration(
+                    hintText: 'search',
+                    hintStyle: TextStyle(color: Colors.white54),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white),
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: _accent, width: 2),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-        ],
+        Positioned(
+          left: 24,
+          right: 24,
+          bottom: 24 + MediaQuery.paddingOf(context).bottom,
+          child: IgnorePointer(
+            ignoring: _notice == null,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 120),
+              opacity: _notice == null ? 0 : 1,
+              child: ColoredBox(
+                color: Colors.black,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    _notice ?? '',
+                    style: const TextStyle(fontSize: 19, color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: ColoredBox(
+        color: Colors.black,
+        child: Stack(
+          children: [
+            IgnorePointer(
+              ignoring: _showAlphabet || _holdingAppListForSelection,
+              child: AnimatedBuilder(
+                animation: _alphabetController,
+                child: appListSurface,
+                builder: (context, child) {
+                  if (_holdingAppListForSelection) {
+                    return Opacity(opacity: 0, child: child);
+                  }
+                  return _buildAppListTransition(child!);
+                },
+              ),
+            ),
+            if (_showAlphabet)
+              Positioned.fill(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.paddingOf(context).top,
+                  ),
+                  child: AnimatedBuilder(
+                    animation: _alphabetController,
+                    builder: (context, child) {
+                      final progress = _alphabetController.value;
+                      // Fade the plane as one measured surface.  The grid
+                      // component owns tile geometry, so moving only its
+                      // child labels would shear labels across fixed cells.
+                      final gridOpacity = Curves.easeOutCubic.transform(
+                        ((progress - .20) / .40).clamp(0.0, 1.0).toDouble(),
+                      );
+                      return Opacity(
+                        opacity: gridOpacity,
+                        child: IgnorePointer(
+                          ignoring: _alphabetClosing || progress < .35,
+                          child: WpAlphabetGrid(
+                            letters: _alphabetLetters,
+                            enabledLetters: _enabledLetters,
+                            onSelected: (letter) => unawaited(_jumpTo(letter)),
+                            onCancel: () => unawaited(_dismissAlphabet()),
+                            cellBuilder: (context, letter, enabled) =>
+                                _buildAlphabetCell(context, letter, enabled),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1416,7 +1535,6 @@ class _AppListLeadingAction extends StatelessWidget {
       ),
     ),
   );
-
 }
 
 enum _AppListEntryKind { search, header, app }
