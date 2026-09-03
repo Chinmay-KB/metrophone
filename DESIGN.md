@@ -43,7 +43,7 @@ The reference world is deliberately spare. There is no decorative app chrome, ca
 
 ### Evidence and limits
 
-This document describes the implementation represented by `PRODUCT.md`, `README.md`, `lib/src/ui/launcher_screen.dart`, `lib/src/ui/launcher_tile_layout.dart`, `pubspec.yaml`, and the final Android captures in `docs/evidence/launcher-ui-2026-08-30/`. The reusable visual primitives come from `wp_pivot_flutter` 2.3.0 pinned at Git commit `72a8b6a`.
+This document describes the implementation represented by `PRODUCT.md`, `README.md`, `lib/src/ui/launcher_screen.dart`, `lib/src/ui/launcher_tile_layout.dart`, `pubspec.yaml`, and the final Android captures in `docs/evidence/launcher-ui-2026-08-30/`. The reusable visual primitives come from `wp_pivot_flutter` 2.3.0 pinned at Git commit `c75bda8`.
 
 The recorded fidelity scope is specific: at the 480×800 reference viewport, held-out comparisons cover 11 Start tiles, 10 visible app-list slots, and all 28 alphabet cells with zero edge error; a 1080×2400 Android emulator check was within one physical pixel. The deterministic capture verifies the shipping 280 ms exit sequence and launch-after-exit behavior. Native Windows Phone easing and physical latency remain qualitative because the emulator host recording cadence cannot establish exact curves. The shipped target documented here is an Android phone; no tablet, foldable, landscape, or desktop layout contract is established by this evidence.
 
@@ -176,7 +176,7 @@ The one prominent exception is the app-list search/close action: a circular tran
 - Moving to apps or returning to Start uses 240 ms with `easeOutCubic`.
 - Launching waits for a 280 ms `easeInCubic` staggered exit before calling Android. Returning or recovering after a failed launch uses a 320 ms `easeOutCubic` entry.
 - Alphabet jump scroll uses 220 ms with `easeOutCubic`.
-- Tile stagger order comes from `WpStaggeredSceneGeometry` and is capped at 8. App-list order advances by 0.35 per entry, is capped at 8, and reverses for entry. `WpStaggeredSceneTransition` owns the reusable transform and right-edge sequencing.
+- Tile stagger order comes from `WpStaggeredSceneGeometry` and is capped at 8. App-list exit order advances by 0.35 per entry and is capped at 8. Scene return is not staggered: each surface swings back as one rigid opaque page around the right edge with a mirrored rotation and no fade, matching the WP8.1 dialer-to-Start capture in `docs/evidence/launcher-start-entry-2026-09-03/`. `WpStaggeredSceneTransition` owns the reusable transform, pivots, and exit sequencing.
 - Reduced-motion preference collapses surface, scene, and alphabet-jump durations to zero.
 - Android Back dismisses alphabet first, then search, then returns apps to Start. At Start, `PopScope` keeps the Home surface in place rather than exiting it.
 - The alphabet surface explicitly uses a transparent status bar with light icons and respects the status-bar inset. Scrollable content and overlays respect the Android navigation-bar bottom inset.
@@ -184,7 +184,7 @@ The one prominent exception is the app-list search/close action: a circular tran
 
 ### Component-library boundary
 
-`wp_pivot_flutter` 2.3.0 at `72a8b6a` owns the measured, reusable Windows Phone primitives: tile grid and tile behavior, app-list rows and headers, alphabet grid, split-surface navigation, staggered scene transforms/order geometry, press tilt, and the WP phone theme.
+`wp_pivot_flutter` 2.3.0 at `c75bda8` owns the measured, reusable Windows Phone primitives: tile grid and tile behavior, app-list rows and headers, alphabet grid, split-surface navigation, staggered scene transforms/order geometry, press tilt, and the WP phone theme.
 
 Metrophone owns launcher policy: Android catalog discovery and launching, installed icon rendering, persisted tile order and size, first-fit packing, pin/unpin/resize actions, notification-derived live content, app-specific tile-color mapping, search/filter rules, enabled alphabet sections, Back-state precedence, launch sequencing, capability prompts, and transient feedback. Do not move Android or launcher data policy into the component package, and do not reimplement shared WP geometry inside the launcher.
 

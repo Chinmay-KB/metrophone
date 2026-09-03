@@ -26,7 +26,6 @@ const _referenceWidth = 480.0;
 const _appListRowHeight = 74.0;
 const _appListContentLeft = 86.0;
 const _appListFirstSlotTop = 51.0;
-const _appListIconSize = 62.0;
 const _alphabetLetters = <String>[
   '#',
   'a',
@@ -115,11 +114,15 @@ class _LauncherScreenState extends State<LauncherScreen>
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: widget.controller,
     builder: (context, _) {
+      // Launcher policy: load state routing. Presentation is DS-owned.
       return switch (widget.controller.state) {
         LauncherLoadState.idle ||
-        LauncherLoadState.loading => const _LoadingSurface(),
-        LauncherLoadState.failed => _FailureSurface(
-          error: widget.controller.error,
+        LauncherLoadState.loading => const WpLoadingSurface(),
+        LauncherLoadState.failed => WpFailureSurface(
+          headline: 'Metrophone could not start',
+          detail:
+              widget.controller.error ??
+              'The launcher returned an unknown error.',
           onRetry: widget.controller.initialize,
         ),
         LauncherLoadState.ready => _ReadyLauncher(
@@ -128,68 +131,6 @@ class _LauncherScreenState extends State<LauncherScreen>
         ),
       };
     },
-  );
-}
-
-class _LoadingSurface extends StatelessWidget {
-  const _LoadingSurface();
-
-  @override
-  Widget build(BuildContext context) => const Scaffold(
-    backgroundColor: Colors.black,
-    body: Center(
-      child: SizedBox(
-        width: 160,
-        child: LinearProgressIndicator(
-          minHeight: 3,
-          color: _accent,
-          backgroundColor: Color(0xff202020),
-        ),
-      ),
-    ),
-  );
-}
-
-class _FailureSurface extends StatelessWidget {
-  const _FailureSurface({required this.error, required this.onRetry});
-
-  final String? error;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.black,
-    body: SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Metrophone could not start',
-              style: TextStyle(fontSize: 34, fontWeight: FontWeight.w300),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              error ?? 'The launcher returned an unknown error.',
-              style: const TextStyle(fontSize: 18, color: Colors.white70),
-            ),
-            const SizedBox(height: 28),
-            TextButton(
-              onPressed: onRetry,
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: _accent,
-                minimumSize: const Size(96, 48),
-                shape: const RoundedRectangleBorder(),
-              ),
-              child: const Text('retry'),
-            ),
-          ],
-        ),
-      ),
-    ),
   );
 }
 
@@ -362,8 +303,12 @@ class _StartSurfaceState extends State<_StartSurface> {
   Widget build(BuildContext context) {
     final slots = packLauncherTiles(widget.controller.tiles);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    // Launcher policy: capability gating + Android consent entry points.
+    // Presentation (2-unit top rule, 48x48 square actions, 24-unit offsets)
+    // is DS-owned via WpSetupPanel.
+    final capabilities = widget.controller.capabilities;
 
-    return ColoredBox(
+    final surface = ColoredBox(
       color: Colors.black,
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
@@ -372,7 +317,9 @@ class _StartSurfaceState extends State<_StartSurface> {
           key: const ValueKey('launcher-ready'),
           children: [
             if (slots.isEmpty)
-              _EmptyStartSurface(onOpenApps: widget.onOpenApps)
+              // Launcher policy: empty detection + navigation. Presentation
+              // (44-unit icon, 21-unit message, semantics) is DS-owned.
+              WpEmptyStart(onOpen: widget.onOpenApps)
             else
               Positioned.fill(
                 top: 56 * (MediaQuery.sizeOf(context).width / _referenceWidth),
@@ -391,21 +338,58 @@ class _StartSurfaceState extends State<_StartSurface> {
                   ],
                 ),
               ),
-            _SetupPanel(controller: widget.controller),
+            WpSetupPanel(
+              actions: [
+                if (!capabilities.isDefaultLauncher)
+                  WpSetupAction(
+                    label: 'set as home',
+                    onPressed: widget.controller.requestDefaultLauncher,
+                  ),
+                if (!capabilities.hasNotificationAccess)
+                  WpSetupAction(
+                    label: 'enable live tiles',
+                    onPressed:
+                        widget.controller.openNotificationAccessSettings,
+                  ),
+              ],
+            ),
           ],
         ),
       ),
     );
+    // Native shell return (WP8.1 dialer -> Start capture) swings the whole
+    // Start surface back as one rigid page around the right edge: no
+    // per-tile stagger or fade on entry. Exit keeps the measured stagger.
+    if (widget.sceneDirection == WpSceneTransitionDirection.enter) {
+      return WpStaggeredSceneTransition(
+        key: const ValueKey('start-scene-page-entry'),
+        animation: widget.sceneAnimation,
+        direction: WpSceneTransitionDirection.enter,
+        order: 0,
+        maxOrder: 0,
+        alignment: Alignment.centerRight,
+        fade: false,
+        child: surface,
+      );
+    }
+    return surface;
   }
 
   static double _exitOrder(LauncherTileSlot slot) =>
       math.min(8.0, 4 - slot.column - slot.columnSpan + slot.row * 0.5);
-
-  static double _entryOrder(LauncherTileSlot slot) =>
-      math.min(8.0, slot.column + slot.columnSpan - 1 + slot.row * 0.5);
 }
 
 class _AnimatedStartTileGrid extends StatefulWidget {
+  // Phase 2 evaluation (WpEditableStartGrid): NOT adopted.
+  // Risk to drag-reorder (0.25 overlap activation, preview/commit via
+  // reorderTileTo, 220ms reflow, 180/160ms edit scale/opacity, ambient wiggle),
+  // scene-transition wrapping (exit/entry order capped at 8 via
+  // WpStaggeredSceneTransition), tile Semantics/launch/unpin/resize, and grid
+  // height (launcher excludes 56-unit field top because it sits in a ListView
+  // below that offset; DS referenceHeight includes it). Existing
+  // edit_interactions tests pin 'start-tile-stack'/'tile-position-*'/
+  // 'tile-edit-*' keys (DS uses 'editable-start-tile-stack'). Leave
+  // launcher-owned until a byte-identical reorder migration is proven.
   const _AnimatedStartTileGrid({
     required this.controller,
     required this.sceneAnimation,
@@ -614,10 +598,6 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
       0,
       (value, slot) => math.max(value, _StartSurfaceState._exitOrder(slot)),
     );
-    final maxEntryOrder = slots.fold<double>(
-      0,
-      (value, slot) => math.max(value, _StartSurfaceState._entryOrder(slot)),
-    );
     final reducedMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return SizedBox(
@@ -636,7 +616,6 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
               referenceScale,
               reducedMotion,
               maxExitOrder,
-              maxEntryOrder,
             ),
           for (final slot in slots.where(
             (slot) => slot.tile.packageName == _draggingPackage,
@@ -648,7 +627,6 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
               referenceScale,
               reducedMotion,
               maxExitOrder,
-              maxEntryOrder,
             ),
         ],
       ),
@@ -662,7 +640,6 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
     double scale,
     bool reducedMotion,
     double maxExitOrder,
-    double maxEntryOrder,
   ) {
     final packageName = slot.tile.packageName;
     final dragging = packageName == _draggingPackage;
@@ -686,6 +663,26 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
     final row = dragging
         ? origin.row.toDouble()
         : _lerp(origin.row.toDouble(), slot.row.toDouble(), _reflowProgress);
+    Widget sceneChild = _LauncherTile(
+      controller: widget.controller,
+      slot: slot,
+      editMode: inEdit,
+      editing: isSelected,
+      onEditingChanged: widget.onEditingChanged,
+      onLaunch: widget.onLaunch,
+    );
+    // Page-level entry wraps the whole surface (see _StartSurfaceState.build),
+    // so tiles skip their staggered exit treatment while entering.
+    if (widget.sceneDirection != WpSceneTransitionDirection.enter) {
+      sceneChild = WpStaggeredSceneTransition(
+        animation: widget.sceneAnimation,
+        direction: WpSceneTransitionDirection.exit,
+        order: _StartSurfaceState._exitOrder(slot),
+        maxOrder: maxExitOrder,
+        alignment: Alignment.centerLeft,
+        child: sceneChild,
+      );
+    }
     Widget tile = Listener(
       onPointerDown: (event) => _startDrag(packageName, event),
       onPointerMove: (event) => _updateDrag(packageName, event, scale),
@@ -704,23 +701,7 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
               ? Duration.zero
               : const Duration(milliseconds: 160),
           opacity: inEdit && !isSelected ? 0.72 : 1,
-          child: WpStaggeredSceneTransition(
-            animation: widget.sceneAnimation,
-            direction: widget.sceneDirection,
-            order: _StartSurfaceState._exitOrder(slot),
-            maxOrder: maxExitOrder,
-            entryOrder: _StartSurfaceState._entryOrder(slot),
-            maxEntryOrder: maxEntryOrder,
-            alignment: Alignment.centerLeft,
-            child: _LauncherTile(
-              controller: widget.controller,
-              slot: slot,
-              editMode: inEdit,
-              editing: isSelected,
-              onEditingChanged: widget.onEditingChanged,
-              onLaunch: widget.onLaunch,
-            ),
-          ),
+          child: sceneChild,
         ),
       ),
     );
@@ -770,44 +751,6 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
     }
     return (seed % 360) / 360 * math.pi * 2;
   }
-}
-
-class _EmptyStartSurface extends StatelessWidget {
-  const _EmptyStartSurface({required this.onOpenApps});
-
-  final VoidCallback onOpenApps;
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Semantics(
-      button: true,
-      label: 'Open apps to pin your first tile',
-      child: InkWell(
-        key: const ValueKey('open-apps-empty'),
-        onTap: onOpenApps,
-        child: const Padding(
-          padding: EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.arrow_forward, size: 44, color: Colors.white),
-              SizedBox(height: 16),
-              Text(
-                'swipe to apps\nthen hold an app to pin it',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 21,
-                  fontWeight: FontWeight.w300,
-                  height: 1.25,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
 }
 
 class _LauncherTile extends StatelessWidget {
@@ -920,6 +863,9 @@ class _TileBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Launcher policy: icon size + role selection + wide-only live rule.
+    // Presentation (18/18/18/34 padding, 18-unit gap, 19/16/25-unit type,
+    // count>1 rule, centering) is DS-owned via WpLiveTileContent.
     final iconSize = switch (tile.size) {
       TileSize.small => 42.0,
       TileSize.medium => 64.0,
@@ -933,104 +879,14 @@ class _TileBody extends StatelessWidget {
             size: iconSize,
           )
         : StartRoleIcon(packageName: role);
-    if (tile.size != TileSize.wide || live == null) {
-      return Center(child: icon);
-    }
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 34),
-      child: Row(
-        children: [
-          icon,
-          const SizedBox(width: 18),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (live!.title != null)
-                  Text(
-                    live!.title!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 19),
-                  ),
-                if (live!.text != null)
-                  Text(
-                    live!.text!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 16, height: 1.12),
-                  ),
-              ],
-            ),
-          ),
-          if (live!.notificationCount > 1)
-            Text(
-              '${live!.notificationCount}',
-              style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w300),
-            ),
-        ],
-      ),
+    final wideLive = tile.size == TileSize.wide ? live : null;
+    return WpLiveTileContent(
+      icon: icon,
+      title: wideLive?.title,
+      body: wideLive?.text,
+      count: wideLive?.notificationCount ?? 0,
     );
   }
-}
-
-class _SetupPanel extends StatelessWidget {
-  const _SetupPanel({required this.controller});
-
-  final LauncherController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final capabilities = controller.capabilities;
-    if (capabilities.isDefaultLauncher && capabilities.hasNotificationAccess) {
-      return const SizedBox.shrink();
-    }
-    return Positioned(
-      left: 24,
-      right: 24,
-      bottom: 24 + MediaQuery.paddingOf(context).bottom,
-      child: ColoredBox(
-        color: Colors.black,
-        child: DecoratedBox(
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: Colors.white, width: 2)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                if (!capabilities.isDefaultLauncher)
-                  TextButton(
-                    key: const ValueKey('request-home-role'),
-                    onPressed: controller.requestDefaultLauncher,
-                    style: _setupButtonStyle,
-                    child: const Text('set as home'),
-                  ),
-                if (!capabilities.hasNotificationAccess)
-                  TextButton(
-                    key: const ValueKey('request-notification-access'),
-                    onPressed: controller.openNotificationAccessSettings,
-                    style: _setupButtonStyle,
-                    child: const Text('enable live tiles'),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  static final _setupButtonStyle = TextButton.styleFrom(
-    foregroundColor: Colors.white,
-    minimumSize: const Size(48, 48),
-    padding: const EdgeInsets.symmetric(horizontal: 8),
-    shape: const RoundedRectangleBorder(),
-    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w400),
-  );
 }
 
 class _AppsSurface extends StatefulWidget {
@@ -1053,6 +909,14 @@ class _AppsSurface extends StatefulWidget {
 
 class _AppsSurfaceState extends State<_AppsSurface>
     with SingleTickerProviderStateMixin {
+  // Phase 2 evaluation (WpAlphabetOverlay): NOT adopted.
+  // Risk to 440/340ms envelope (app fade 0-18% easeIn with -12 slide, plane
+  // fade 20-60% easeOutCubic, input ignored while closing or <35%), plus
+  // byte-identical return frames via _holdingAppListForSelection +
+  // ScrollController replacement + post-frame jump (WpSplitSurfaceView offset
+  // restoration). Launcher owns sections/enabledLetters/scroll mapping/Back
+  // precedence; migrating now risks selection/back-dismissal regressions
+  // covered by the alphabet-picker return-frame tests. Leave launcher-owned.
   late ScrollController _scrollController;
   final _searchController = TextEditingController();
   late final AnimationController _alphabetController;
@@ -1278,78 +1142,68 @@ class _AppsSurfaceState extends State<_AppsSurface>
           controller: _scrollController,
           referenceBottomPadding:
               24 + MediaQuery.paddingOf(context).bottom / scale,
-          leadingAction: _AppListLeadingAction(
+          leadingAction: WpCircularAffordance(
+            // Launcher policy: search open/close state + toggle. Presentation
+            // (44-unit circle, 2-unit ring, 28-unit WpSearchGlyph) is DS-owned.
+            key: const ValueKey('app-search-action'),
             searching: _searching,
             onPressed: _toggleSearch,
           ),
           children: [
+            // Page-level entry wraps the whole list (see below), so rows
+            // skip their staggered exit treatment while entering.
             for (var index = 0; index < entries.length; index++)
-              WpStaggeredSceneTransition(
-                animation: widget.sceneAnimation,
-                direction: widget.sceneDirection,
-                order: math.min(8.0, index * 0.35),
-                maxOrder: maxOrder,
-                entryOrder: math.max(0, maxOrder - index * 0.35),
-                maxEntryOrder: maxOrder,
-                child: _buildEntry(entries[index]),
-              ),
+              if (widget.sceneDirection == WpSceneTransitionDirection.enter)
+                _buildEntry(entries[index])
+              else
+                WpStaggeredSceneTransition(
+                  animation: widget.sceneAnimation,
+                  direction: WpSceneTransitionDirection.exit,
+                  order: math.min(8.0, index * 0.35),
+                  maxOrder: maxOrder,
+                  // Measured WP8.1 pivot is the right edge (see pivot test).
+                  alignment: Alignment.centerRight,
+                  child: _buildEntry(entries[index]),
+                ),
           ],
         ),
         if (_searching)
           Positioned(
+            // Launcher policy: search slot insets (content column, first slot).
+            // Presentation (74-unit row, 62-unit inner, 25-unit text,
+            // rest/focused underlines, cursor, semantics) is DS-owned.
+            // Filtering/sorting/sections/Back stay in launcher.
             left: _appListContentLeft * scale,
             top: _appListFirstSlotTop * scale,
             right: 24 * scale,
             height: _appListRowHeight * scale,
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: SizedBox(
-                height: _appListIconSize * scale,
-                child: TextField(
-                  key: const ValueKey('app-search-field'),
-                  controller: _searchController,
-                  autofocus: true,
-                  onChanged: (_) => setState(() {}),
-                  style: TextStyle(fontSize: 25 * scale, color: Colors.white),
-                  cursorColor: _accent,
-                  decoration: const InputDecoration(
-                    hintText: 'search',
-                    hintStyle: TextStyle(color: Colors.white54),
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white),
-                    ),
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: _accent, width: 2),
-                    ),
-                  ),
-                ),
-              ),
+            child: WpSearchField(
+              controller: _searchController,
+              autofocus: true,
+              onChanged: (_) => setState(() {}),
             ),
           ),
-        Positioned(
-          left: 24,
-          right: 24,
-          bottom: 24 + MediaQuery.paddingOf(context).bottom,
-          child: IgnorePointer(
-            ignoring: _notice == null,
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 120),
-              opacity: _notice == null ? 0 : 1,
-              child: ColoredBox(
-                color: Colors.black,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    _notice ?? '',
-                    style: const TextStyle(fontSize: 19, color: Colors.white),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
+        // Launcher policy: pin/unpin messages + 1600ms hold timer stay here.
+        // Presentation (19-unit live-region notice, 120ms fade, 24-unit
+        // offsets) is DS-owned via WpTransientNotice.
+        WpTransientNotice(text: _notice),
       ],
     );
+    // Native shell return swings the whole app list back as one rigid page
+    // around the right edge with no stagger or fade. Exit keeps per-row order.
+    final sceneSurface =
+        widget.sceneDirection == WpSceneTransitionDirection.enter
+        ? WpStaggeredSceneTransition(
+            key: const ValueKey('apps-scene-page-entry'),
+            animation: widget.sceneAnimation,
+            direction: WpSceneTransitionDirection.enter,
+            order: 0,
+            maxOrder: 0,
+            alignment: Alignment.centerRight,
+            fade: false,
+            child: appListSurface,
+          )
+        : appListSurface;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -1365,7 +1219,7 @@ class _AppsSurfaceState extends State<_AppsSurface>
               ignoring: _showAlphabet || _holdingAppListForSelection,
               child: AnimatedBuilder(
                 animation: _alphabetController,
-                child: appListSurface,
+                child: sceneSurface,
                 builder: (context, child) {
                   if (_holdingAppListForSelection) {
                     return Opacity(opacity: 0, child: child);
@@ -1506,35 +1360,6 @@ class _AppRow extends StatelessWidget {
           )
         : StartRoleIcon(packageName: role);
   }
-}
-
-class _AppListLeadingAction extends StatelessWidget {
-  const _AppListLeadingAction({
-    required this.searching,
-    required this.onPressed,
-  });
-
-  final bool searching;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: searching ? 'Close app search' : 'Search apps',
-    child: Material(
-      color: Colors.transparent,
-      shape: const CircleBorder(
-        side: BorderSide(color: Colors.white, width: 2),
-      ),
-      child: InkWell(
-        key: const ValueKey('app-search-action'),
-        onTap: onPressed,
-        excludeFromSemantics: true,
-        customBorder: const CircleBorder(),
-        child: StartSearchIcon(close: searching),
-      ),
-    ),
-  );
 }
 
 enum _AppListEntryKind { search, header, app }

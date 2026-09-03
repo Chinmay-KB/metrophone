@@ -118,11 +118,11 @@ void main() {
 
     expect(find.byType(WpSplitSurfaceView), findsOneWidget);
     expect(find.byKey(const ValueKey('launcher-ready')), findsOneWidget);
-    expect(find.byKey(const ValueKey('request-home-role')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('request-notification-access')),
-      findsOneWidget,
-    );
+    // Setup presentation is DS-owned (WpSetupPanel/WpSetupAction); launcher
+    // owns capability gating + consent entry points.
+    expect(find.byType(WpSetupPanel), findsOneWidget);
+    expect(find.text('set as home'), findsOneWidget);
+    expect(find.text('enable live tiles'), findsOneWidget);
 
     final tile = find.byKey(const ValueKey('tile-example.alpha'));
     expect(tester.getTopLeft(tile), const Offset(24, 56));
@@ -138,6 +138,71 @@ void main() {
       find.byKey(const ValueKey('wp-tile-edit-visual-resize')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('scene entry swings each surface back as one page', (tester) async {
+    await _setWvgaView(tester);
+    await tester.pumpWidget(
+      MetrophoneApp(controller: controller, disposeController: false),
+    );
+    await tester.pumpAndSettle();
+
+    // Native shell return (WP8.1 dialer -> Start capture) swings the whole
+    // surface back rigidly: one opaque page transition per surface, no
+    // per-tile stagger or fade while entering.
+    WpStaggeredSceneTransition pageEntry(String key) {
+      final transition = tester.widget<WpStaggeredSceneTransition>(
+        find.byKey(ValueKey(key)),
+      );
+      expect(transition.direction, WpSceneTransitionDirection.enter);
+      expect(transition.alignment, Alignment.centerRight);
+      expect(transition.fade, isFalse);
+      expect(transition.order, 0);
+      expect(transition.maxOrder, 0);
+      return transition;
+    }
+
+    pageEntry('start-scene-page-entry');
+    expect(find.byType(WpStaggeredSceneTransition), findsOneWidget);
+
+    await tester.fling(
+      find.byType(WpSplitSurfaceView),
+      const Offset(-480, 0),
+      1200,
+    );
+    await tester.pumpAndSettle();
+    pageEntry('apps-scene-page-entry');
+    for (final element in tester.elementList(
+      find.byType(WpStaggeredSceneTransition),
+    )) {
+      final transition = element.widget as WpStaggeredSceneTransition;
+      expect(transition.direction, WpSceneTransitionDirection.enter);
+      expect(transition.fade, isFalse);
+    }
+  });
+
+  testWidgets('scene exit keeps the measured staggered pivots', (tester) async {
+    await _setWvgaView(tester);
+    await tester.pumpWidget(
+      MetrophoneApp(controller: controller, disposeController: false),
+    );
+    await tester.pumpAndSettle();
+
+    // The DS default pivot is surface-neutral (center). Exit pins the
+    // measured edges explicitly; a center pivot shears app icons away from
+    // labels mid-flight.
+    await tester.tap(find.byKey(const ValueKey('tile-example.alpha')));
+    await tester.pump(const Duration(milliseconds: 100));
+    final elements = tester.elementList(
+      find.byType(WpStaggeredSceneTransition),
+    );
+    expect(elements, isNotEmpty);
+    for (final element in elements) {
+      final transition = element.widget as WpStaggeredSceneTransition;
+      expect(transition.direction, WpSceneTransitionDirection.exit);
+      expect(transition.alignment, Alignment.centerLeft);
+    }
+    await tester.pumpAndSettle();
   });
 
   testWidgets('swipes to app list, searches, and opens alphabet jump', (
@@ -176,9 +241,11 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('app-search-action')));
     await tester.pump();
-    expect(find.byKey(const ValueKey('app-search-field')), findsOneWidget);
+    // Search presentation is DS-owned (WpSearchField); launcher owns
+    // filtering/sorting/sections/Back. The inner field carries the DS key.
+    expect(find.byKey(const ValueKey('wp-search-field')), findsOneWidget);
     await tester.enterText(
-      find.byKey(const ValueKey('app-search-field')),
+      find.byKey(const ValueKey('wp-search-field')),
       'beta',
     );
     await tester.pump();
@@ -299,10 +366,10 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('app-search-action')));
     await tester.pump();
-    expect(find.byKey(const ValueKey('app-search-field')), findsOneWidget);
+    expect(find.byKey(const ValueKey('wp-search-field')), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pump();
-    expect(find.byKey(const ValueKey('app-search-field')), findsNothing);
+    expect(find.byKey(const ValueKey('wp-search-field')), findsNothing);
 
     await tester.tap(
       find.byKey(const ValueKey('wp-app-list-header-frame')).first,
