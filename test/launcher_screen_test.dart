@@ -140,6 +140,47 @@ void main() {
     );
   });
 
+  testWidgets('scene transitions keep their measured pivots', (tester) async {
+    await _setWvgaView(tester);
+    await tester.pumpWidget(
+      MetrophoneApp(controller: controller, disposeController: false),
+    );
+    await tester.pumpAndSettle();
+
+    // The DS default pivot is surface-neutral (center). Both surfaces pin
+    // their measured edge explicitly; a center pivot shears app icons away
+    // from labels mid-flight.
+    final startElements = tester.elementList(
+      find.byType(WpStaggeredSceneTransition),
+    );
+    expect(startElements, isNotEmpty);
+    for (final element in startElements) {
+      final transition = element.widget as WpStaggeredSceneTransition;
+      expect(transition.alignment, Alignment.centerLeft);
+    }
+
+    await tester.fling(
+      find.byType(WpSplitSurfaceView),
+      const Offset(-480, 0),
+      1200,
+    );
+    await tester.pumpAndSettle();
+
+    final appsElements = tester.elementList(
+      find.byType(WpStaggeredSceneTransition),
+    );
+    var sawApps = false;
+    for (final element in appsElements) {
+      if (element.findAncestorWidgetOfExactType<WpAppListView>() == null) {
+        continue;
+      }
+      final transition = element.widget as WpStaggeredSceneTransition;
+      expect(transition.alignment, Alignment.centerRight);
+      sawApps = true;
+    }
+    expect(sawApps, isTrue);
+  });
+
   testWidgets('swipes to app list, searches, and opens alphabet jump', (
     tester,
   ) async {

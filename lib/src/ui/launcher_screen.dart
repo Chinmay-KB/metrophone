@@ -1148,6 +1148,10 @@ class _AppsSurfaceState extends State<_AppsSurface>
                 maxOrder: maxOrder,
                 entryOrder: math.max(0, maxOrder - index * 0.35),
                 maxEntryOrder: maxOrder,
+                // Measured WP8.1 app-list pivot is the right edge. Pin it
+                // explicitly: the DS default is surface-neutral (center) and
+                // a center pivot shears icons away from labels mid-flight.
+                alignment: Alignment.centerRight,
                 child: _buildEntry(entries[index]),
               ),
           ],
