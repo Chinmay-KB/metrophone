@@ -118,11 +118,11 @@ void main() {
 
     expect(find.byType(WpSplitSurfaceView), findsOneWidget);
     expect(find.byKey(const ValueKey('launcher-ready')), findsOneWidget);
-    expect(find.byKey(const ValueKey('request-home-role')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('request-notification-access')),
-      findsOneWidget,
-    );
+    // Setup presentation is DS-owned (WpSetupPanel/WpSetupAction); launcher
+    // owns capability gating + consent entry points.
+    expect(find.byType(WpSetupPanel), findsOneWidget);
+    expect(find.text('set as home'), findsOneWidget);
+    expect(find.text('enable live tiles'), findsOneWidget);
 
     final tile = find.byKey(const ValueKey('tile-example.alpha'));
     expect(tester.getTopLeft(tile), const Offset(24, 56));
@@ -176,9 +176,11 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('app-search-action')));
     await tester.pump();
-    expect(find.byKey(const ValueKey('app-search-field')), findsOneWidget);
+    // Search presentation is DS-owned (WpSearchField); launcher owns
+    // filtering/sorting/sections/Back. The inner field carries the DS key.
+    expect(find.byKey(const ValueKey('wp-search-field')), findsOneWidget);
     await tester.enterText(
-      find.byKey(const ValueKey('app-search-field')),
+      find.byKey(const ValueKey('wp-search-field')),
       'beta',
     );
     await tester.pump();
@@ -299,10 +301,10 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('app-search-action')));
     await tester.pump();
-    expect(find.byKey(const ValueKey('app-search-field')), findsOneWidget);
+    expect(find.byKey(const ValueKey('wp-search-field')), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pump();
-    expect(find.byKey(const ValueKey('app-search-field')), findsNothing);
+    expect(find.byKey(const ValueKey('wp-search-field')), findsNothing);
 
     await tester.tap(
       find.byKey(const ValueKey('wp-app-list-header-frame')).first,
