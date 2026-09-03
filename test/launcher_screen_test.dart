@@ -140,24 +140,30 @@ void main() {
     );
   });
 
-  testWidgets('scene transitions keep their measured pivots', (tester) async {
+  testWidgets('scene entry swings each surface back as one page', (tester) async {
     await _setWvgaView(tester);
     await tester.pumpWidget(
       MetrophoneApp(controller: controller, disposeController: false),
     );
     await tester.pumpAndSettle();
 
-    // The DS default pivot is surface-neutral (center). Both surfaces pin
-    // their measured edge explicitly; a center pivot shears app icons away
-    // from labels mid-flight.
-    final startElements = tester.elementList(
-      find.byType(WpStaggeredSceneTransition),
-    );
-    expect(startElements, isNotEmpty);
-    for (final element in startElements) {
-      final transition = element.widget as WpStaggeredSceneTransition;
-      expect(transition.alignment, Alignment.centerLeft);
+    // Native shell return (WP8.1 dialer -> Start capture) swings the whole
+    // surface back rigidly: one opaque page transition per surface, no
+    // per-tile stagger or fade while entering.
+    WpStaggeredSceneTransition pageEntry(String key) {
+      final transition = tester.widget<WpStaggeredSceneTransition>(
+        find.byKey(ValueKey(key)),
+      );
+      expect(transition.direction, WpSceneTransitionDirection.enter);
+      expect(transition.alignment, Alignment.centerRight);
+      expect(transition.fade, isFalse);
+      expect(transition.order, 0);
+      expect(transition.maxOrder, 0);
+      return transition;
     }
+
+    pageEntry('start-scene-page-entry');
+    expect(find.byType(WpStaggeredSceneTransition), findsOneWidget);
 
     await tester.fling(
       find.byType(WpSplitSurfaceView),
@@ -165,20 +171,38 @@ void main() {
       1200,
     );
     await tester.pumpAndSettle();
+    pageEntry('apps-scene-page-entry');
+    for (final element in tester.elementList(
+      find.byType(WpStaggeredSceneTransition),
+    )) {
+      final transition = element.widget as WpStaggeredSceneTransition;
+      expect(transition.direction, WpSceneTransitionDirection.enter);
+      expect(transition.fade, isFalse);
+    }
+  });
 
-    final appsElements = tester.elementList(
+  testWidgets('scene exit keeps the measured staggered pivots', (tester) async {
+    await _setWvgaView(tester);
+    await tester.pumpWidget(
+      MetrophoneApp(controller: controller, disposeController: false),
+    );
+    await tester.pumpAndSettle();
+
+    // The DS default pivot is surface-neutral (center). Exit pins the
+    // measured edges explicitly; a center pivot shears app icons away from
+    // labels mid-flight.
+    await tester.tap(find.byKey(const ValueKey('tile-example.alpha')));
+    await tester.pump(const Duration(milliseconds: 100));
+    final elements = tester.elementList(
       find.byType(WpStaggeredSceneTransition),
     );
-    var sawApps = false;
-    for (final element in appsElements) {
-      if (element.findAncestorWidgetOfExactType<WpAppListView>() == null) {
-        continue;
-      }
+    expect(elements, isNotEmpty);
+    for (final element in elements) {
       final transition = element.widget as WpStaggeredSceneTransition;
-      expect(transition.alignment, Alignment.centerRight);
-      sawApps = true;
+      expect(transition.direction, WpSceneTransitionDirection.exit);
+      expect(transition.alignment, Alignment.centerLeft);
     }
-    expect(sawApps, isTrue);
+    await tester.pumpAndSettle();
   });
 
   testWidgets('swipes to app list, searches, and opens alphabet jump', (

@@ -308,7 +308,7 @@ class _StartSurfaceState extends State<_StartSurface> {
     // is DS-owned via WpSetupPanel.
     final capabilities = widget.controller.capabilities;
 
-    return ColoredBox(
+    final surface = ColoredBox(
       color: Colors.black,
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
@@ -357,13 +357,26 @@ class _StartSurfaceState extends State<_StartSurface> {
         ),
       ),
     );
+    // Native shell return (WP8.1 dialer -> Start capture) swings the whole
+    // Start surface back as one rigid page around the right edge: no
+    // per-tile stagger or fade on entry. Exit keeps the measured stagger.
+    if (widget.sceneDirection == WpSceneTransitionDirection.enter) {
+      return WpStaggeredSceneTransition(
+        key: const ValueKey('start-scene-page-entry'),
+        animation: widget.sceneAnimation,
+        direction: WpSceneTransitionDirection.enter,
+        order: 0,
+        maxOrder: 0,
+        alignment: Alignment.centerRight,
+        fade: false,
+        child: surface,
+      );
+    }
+    return surface;
   }
 
   static double _exitOrder(LauncherTileSlot slot) =>
       math.min(8.0, 4 - slot.column - slot.columnSpan + slot.row * 0.5);
-
-  static double _entryOrder(LauncherTileSlot slot) =>
-      math.min(8.0, slot.column + slot.columnSpan - 1 + slot.row * 0.5);
 }
 
 class _AnimatedStartTileGrid extends StatefulWidget {
@@ -585,10 +598,6 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
       0,
       (value, slot) => math.max(value, _StartSurfaceState._exitOrder(slot)),
     );
-    final maxEntryOrder = slots.fold<double>(
-      0,
-      (value, slot) => math.max(value, _StartSurfaceState._entryOrder(slot)),
-    );
     final reducedMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return SizedBox(
@@ -607,7 +616,6 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
               referenceScale,
               reducedMotion,
               maxExitOrder,
-              maxEntryOrder,
             ),
           for (final slot in slots.where(
             (slot) => slot.tile.packageName == _draggingPackage,
@@ -619,7 +627,6 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
               referenceScale,
               reducedMotion,
               maxExitOrder,
-              maxEntryOrder,
             ),
         ],
       ),
@@ -633,7 +640,6 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
     double scale,
     bool reducedMotion,
     double maxExitOrder,
-    double maxEntryOrder,
   ) {
     final packageName = slot.tile.packageName;
     final dragging = packageName == _draggingPackage;
@@ -657,6 +663,26 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
     final row = dragging
         ? origin.row.toDouble()
         : _lerp(origin.row.toDouble(), slot.row.toDouble(), _reflowProgress);
+    Widget sceneChild = _LauncherTile(
+      controller: widget.controller,
+      slot: slot,
+      editMode: inEdit,
+      editing: isSelected,
+      onEditingChanged: widget.onEditingChanged,
+      onLaunch: widget.onLaunch,
+    );
+    // Page-level entry wraps the whole surface (see _StartSurfaceState.build),
+    // so tiles skip their staggered exit treatment while entering.
+    if (widget.sceneDirection != WpSceneTransitionDirection.enter) {
+      sceneChild = WpStaggeredSceneTransition(
+        animation: widget.sceneAnimation,
+        direction: WpSceneTransitionDirection.exit,
+        order: _StartSurfaceState._exitOrder(slot),
+        maxOrder: maxExitOrder,
+        alignment: Alignment.centerLeft,
+        child: sceneChild,
+      );
+    }
     Widget tile = Listener(
       onPointerDown: (event) => _startDrag(packageName, event),
       onPointerMove: (event) => _updateDrag(packageName, event, scale),
@@ -675,23 +701,7 @@ class _AnimatedStartTileGridState extends State<_AnimatedStartTileGrid>
               ? Duration.zero
               : const Duration(milliseconds: 160),
           opacity: inEdit && !isSelected ? 0.72 : 1,
-          child: WpStaggeredSceneTransition(
-            animation: widget.sceneAnimation,
-            direction: widget.sceneDirection,
-            order: _StartSurfaceState._exitOrder(slot),
-            maxOrder: maxExitOrder,
-            entryOrder: _StartSurfaceState._entryOrder(slot),
-            maxEntryOrder: maxEntryOrder,
-            alignment: Alignment.centerLeft,
-            child: _LauncherTile(
-              controller: widget.controller,
-              slot: slot,
-              editMode: inEdit,
-              editing: isSelected,
-              onEditingChanged: widget.onEditingChanged,
-              onLaunch: widget.onLaunch,
-            ),
-          ),
+          child: sceneChild,
         ),
       ),
     );
@@ -1140,20 +1150,21 @@ class _AppsSurfaceState extends State<_AppsSurface>
             onPressed: _toggleSearch,
           ),
           children: [
+            // Page-level entry wraps the whole list (see below), so rows
+            // skip their staggered exit treatment while entering.
             for (var index = 0; index < entries.length; index++)
-              WpStaggeredSceneTransition(
-                animation: widget.sceneAnimation,
-                direction: widget.sceneDirection,
-                order: math.min(8.0, index * 0.35),
-                maxOrder: maxOrder,
-                entryOrder: math.max(0, maxOrder - index * 0.35),
-                maxEntryOrder: maxOrder,
-                // Measured WP8.1 app-list pivot is the right edge. Pin it
-                // explicitly: the DS default is surface-neutral (center) and
-                // a center pivot shears icons away from labels mid-flight.
-                alignment: Alignment.centerRight,
-                child: _buildEntry(entries[index]),
-              ),
+              if (widget.sceneDirection == WpSceneTransitionDirection.enter)
+                _buildEntry(entries[index])
+              else
+                WpStaggeredSceneTransition(
+                  animation: widget.sceneAnimation,
+                  direction: WpSceneTransitionDirection.exit,
+                  order: math.min(8.0, index * 0.35),
+                  maxOrder: maxOrder,
+                  // Measured WP8.1 pivot is the right edge (see pivot test).
+                  alignment: Alignment.centerRight,
+                  child: _buildEntry(entries[index]),
+                ),
           ],
         ),
         if (_searching)
@@ -1178,6 +1189,21 @@ class _AppsSurfaceState extends State<_AppsSurface>
         WpTransientNotice(text: _notice),
       ],
     );
+    // Native shell return swings the whole app list back as one rigid page
+    // around the right edge with no stagger or fade. Exit keeps per-row order.
+    final sceneSurface =
+        widget.sceneDirection == WpSceneTransitionDirection.enter
+        ? WpStaggeredSceneTransition(
+            key: const ValueKey('apps-scene-page-entry'),
+            animation: widget.sceneAnimation,
+            direction: WpSceneTransitionDirection.enter,
+            order: 0,
+            maxOrder: 0,
+            alignment: Alignment.centerRight,
+            fade: false,
+            child: appListSurface,
+          )
+        : appListSurface;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -1193,7 +1219,7 @@ class _AppsSurfaceState extends State<_AppsSurface>
               ignoring: _showAlphabet || _holdingAppListForSelection,
               child: AnimatedBuilder(
                 animation: _alphabetController,
-                child: appListSurface,
+                child: sceneSurface,
                 builder: (context, child) {
                   if (_holdingAppListForSelection) {
                     return Opacity(opacity: 0, child: child);

@@ -376,8 +376,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "127e5949afd2a571a915b69a4b14c76274e93b04"
-      resolved-ref: "127e5949afd2a571a915b69a4b14c76274e93b04"
+      ref: c75bda89e9fb3ffb9a63279a3e52f9ff5ecd861e
+      resolved-ref: c75bda89e9fb3ffb9a63279a3e52f9ff5ecd861e
       url: "https://github.com/Chinmay-KB/wp_pivot_flutter.git"
     source: git
     version: "2.3.0"
